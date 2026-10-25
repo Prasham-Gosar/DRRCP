@@ -142,3 +142,113 @@ Owners may add new types in their own module; add a row here in the same PR.
 
 `score = 2 × signal + battery` → `>=150 STABLE`, `>=100 AT_RISK`, `>=50 PARTITION_LIKELY`, else `PARTITIONED`.
 Silence threshold 6000 ms, monitor every 1 s, worker pool 4 threads.
+
+## 8. DTOs — consensus + faulttolerance (Grasit)
+
+All DTOs live in `com.drs.consensus.model` and `com.drs.faulttolerance.model`.
+Jackson serialises them to JSON automatically via getters.
+
+### `ElectionNode` (request input)
+
+```json
+{ "id": "UAV-01", "priority": 1, "alive": true }
+```
+
+### `ElectionResult` (response from `POST /api/election/bully`, `/ring`, `/compare`)
+
+```json
+{
+  "algorithm": "BULLY",
+  "leaderId": "Edge-01",
+  "leaderPriority": 3,
+  "totalMessages": 8,
+  "steps": [
+    "[Bully] UAV-01 notices the coordinator is unreachable -> starts an election.",
+    "[Bully] UAV-01 --ELECTION--> UAV-02",
+    "..."
+  ]
+}
+```
+
+`/compare` returns both Bully and Ring results:
+
+```json
+{
+  "bully": { /* ElectionResult */ },
+  "ring":  { /* ElectionResult */ }
+}
+```
+
+### `UpdateRecord` (request body for `POST /api/updates`)
+
+```json
+{
+  "recordId": "REC-1",
+  "resourceKey": "House-12",
+  "resourceType": "STATUS",
+  "value": "RESCUED",
+  "clusterId": "Cluster-A",
+  "nodeId": "UAV-01",
+  "description": "UAV-01 marks House-12 rescued",
+  "vector": { "UAV-01": 2, "UAV-02": 0, "Edge-01": 0 }
+}
+```
+
+### `Resolution` (part of reconciliation response)
+
+```json
+{
+  "resourceKey": "House-12",
+  "resourceType": "STATUS",
+  "finalValue": "NEEDS_RESCUE",
+  "method": "POLICY_RESOLVED",
+  "needsHumanReview": true,
+  "contributingUpdates": [ { "recordId": "REC-1", "value": "RESCUED", "vector": {...} }, ... ],
+  "explanation": "2 concurrent, conflicting updates were found. Safety-first policy applied..."
+}
+```
+
+### `ReconciliationResult` (response from `POST /api/reconcile`)
+
+```json
+{
+  "resolutions": [ /* Resolution[] */ ],
+  "steps": [ "Starting reconciliation of 4 updates.", "..." ],
+  "totalUpdates": 4,
+  "conflictsDetected": 1,
+  "humanReviewRequired": 1
+}
+```
+
+### `SystemUpdate` (used in fault-tolerance, Exp 8)
+
+```json
+{
+  "updateId": "UPDATE-1",
+  "resourceId": "House-12",
+  "updateType": "STATUS",
+  "value": "NEEDS_RESCUE",
+  "sourceNode": "UAV-01",
+  "timestamp": 1729877160000
+}
+```
+
+### `FaultToleranceResult` (response from all `/api/ft/*` endpoints)
+
+```json
+{
+  "primaryId": "Coordinator-Primary",
+  "backupId": "Coordinator-Backup",
+  "primaryActive": false,
+  "backupPromoted": true,
+  "currentState": {
+    "House-12": { /* SystemUpdate */ },
+    "Hospital-01": { /* SystemUpdate */ }
+  },
+  "steps": [
+    "[Coordinator-Primary] Processing system update: UPDATE-1 | ...",
+    "[Coordinator-Primary] Update successfully replicated.",
+    "..."
+  ]
+}
+```
