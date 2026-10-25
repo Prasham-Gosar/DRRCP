@@ -65,76 +65,78 @@ Each message `data` is:
 
 `payload` is a JSON **string** — call `JSON.parse(msg.payload)` in the browser.
 
-## 5. REST contract
+## 5. REST contract (agreed in the project plan — everyone follows this)
 
-Status: **built** = exists now, **planned** = agreed contract, owner implements it.
+Status: **built** = exists on main, **temp** = Day 1 placeholder that Day 2 replaces, **planned** = owner implements it on the day shown in the plan.
 
 ### core (Prasham)
 
-| Method | Path | Body / params | Returns | Status |
-|---|---|---|---|---|
-| POST | `/api/coordinator/register` | `{nodeId, batteryLevel 0-100, signalStrength 0-100, nodeType, clusterId}` | `{nodeId, state, connectivityScore, thread, steps[]}` | built |
-| GET | `/api/coordinator/nodes` | — | `NodeStatus[]` | built |
-| GET | `/api/coordinator/nodes/{nodeId}` | — | `NodeStatus` or 404 | built |
-| GET | `/api/coordinator/nodes/{nodeId}/state` | — | `{nodeId, state}` or 404 | built |
-| POST | `/api/coordinator/heartbeat/{nodeId}` | optional `?timestamp=<epochMs>` | `{nodeId, timestamp, thread, steps[]}` | built |
-| GET | `/api/coordinator/time` | — | `{serverTime, note}` (Cristian server) | built |
-| GET | `/api/events` | — | SSE stream | built |
-| GET | `/api/events/history` | `?limit=50` (1-500) | `EventLog[]`, newest first | built |
-| POST | `/api/clock/sync` | `{nodeId}` | `{offsetMs, rttMs, steps[]}` | planned |
-| POST | `/api/clock/vector/tick` | `{nodeId}` | `{nodeId, vector{}}` | planned |
-| POST | `/api/partition/start` | `{clusters[]}` | `{partitionId, steps[]}` | planned |
-| POST | `/api/partition/heal` | — | `{steps[]}` | planned |
-| POST | `/api/scenario/run` | `{name}` | `{steps[]}` | planned |
-
-### consensus (Grasit) — all planned
-
-| Method | Path | Returns |
+| Endpoint | Purpose | Status |
 |---|---|---|
-| POST | `/api/election/bully` | `{leader, messages, steps[]}` |
-| POST | `/api/election/ring` | `{leader, messages, steps[]}` |
-| POST | `/api/reconcile/update` | `{updateId, vector{}}` |
-| POST | `/api/reconcile/merge` | `{resolutions[], survivors[], steps[]}` |
-| POST | `/api/replication/write` | `{seq, replicatedTo[], steps[]}` |
-| POST | `/api/replication/kill-primary` | `{newPrimary, steps[]}` |
-| GET | `/api/replication/state` | `{primary, backups[], log[]}` |
+| `POST /api/nodes/register` | Exp1 register node, returns connectivity score | planned (Day 2) |
+| `GET /api/nodes`, `GET /api/nodes/{id}` | List/get nodes with status ALIVE/SILENT | planned (Day 2) |
+| `POST /api/nodes/{id}/heartbeat` | Exp2 heartbeat, handled by 4-thread pool | planned (Day 2) |
+| `POST /api/simulator/start`, `/stop`, `/silence/{nodeId}` | Spawn simulated UAV/edge nodes | planned (Day 2) |
+| `POST /api/clock/sync/{nodeId}`, `GET /api/clock/status` | Exp3 Cristian sync, vector clocks | planned (Day 3) |
+| `POST /api/network/partition`, `/heal`, `GET /api/network/status` | Simulated partition | planned (Day 3) |
+| `POST /api/scenario/run`, `GET /api/scenario/status`, `POST /api/scenario/reset` | Full story runner | planned (Day 4) |
+| `GET /api/events` (SSE), `GET /api/events/history?limit=50` | Live events | **built** |
 
-### compute (Parth) — all planned
+Temporary Day 1 endpoints (replaced by the `/api/nodes/...` ones on Day 2, do not build on these):
 
-| Method | Path | Returns |
+| Endpoint | Purpose | Status |
 |---|---|---|
-| POST | `/api/loadbalancer/assign` | `{assignments[], steps[]}` |
-| GET | `/api/loadbalancer/nodes` | `LoadNode[]` |
-| POST | `/api/analytics/run` | `{jobId}` |
-| GET | `/api/analytics/{jobId}` | `{status, results[]}` |
+| `POST /api/coordinator/register` | Register node | temp |
+| `GET /api/coordinator/nodes`, `/nodes/{id}`, `/nodes/{id}/state` | Read nodes | temp |
+| `POST /api/coordinator/heartbeat/{nodeId}` | Heartbeat | temp |
+| `GET /api/coordinator/time` | Cristian time server | temp |
 
-### comm (Vedant) — all planned
+### consensus + faulttolerance (Grasit)
 
-| Method | Path | Returns |
-|---|---|---|
-| POST | `/api/mpi/broadcast` | `{receivers[], steps[]}` |
-| POST | `/api/mpi/scatter` | `{chunks[], steps[]}` |
-| POST | `/api/mpi/gather` | `{gathered[], steps[]}` |
-| POST | `/api/matrix/multiply` | `{size, sequentialMs, parallelMs, speedup}` |
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/election/bully`, `/ring`, `/compare`, `GET /api/election/history` | Exp4 |
+| `POST /api/updates`, `GET /api/updates`, `DELETE /api/updates` | Exp5 stamped updates |
+| `POST /api/reconcile`, `GET /api/reconcile/latest` | Exp5 merge |
+| `POST /api/ft/updates`, `POST /api/ft/primary/fail`, `POST /api/ft/reset`, `GET /api/ft/state` | Exp8 |
+
+### compute (Parth)
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/tasks`, `GET /api/tasks`, `POST /api/tasks/{id}/assign`, `DELETE /api/tasks` | Rescue tasks |
+| `POST /api/loadbalancer/assign-all`, `GET /api/loadbalancer/nodes` | Exp6 |
+| `POST /api/analytics/mapreduce/run`, `GET /api/analytics/mapreduce/latest`, `GET /api/analytics/mapreduce/history` | Exp7 |
+
+### comm (Vedant)
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/comm/bcast`, `/scatter`, `/gather`, `/run-all` | Exp9 |
+| `POST /api/matrix/run`, `POST /api/matrix/sweep` | Exp10 |
 
 ## 6. Event types
 
-| Module | Type | Emitted by | Payload |
-|---|---|---|---|
-| `coordinator` | `NODE_REGISTERED` | CoordinatorService | RegistrationResult |
-| `heartbeat` | `HEARTBEAT_RECEIVED` | CoordinatorService | HeartbeatResult |
-| `heartbeat` | `PARTITION_SUSPECTED` | silent-node monitor (once per silence) | `{nodeId, silentForMs, thresholdMs}` |
-| `clock` | `CLOCK_SYNCED`, `VECTOR_TICK` | core (planned) | — |
-| `partition` | `PARTITION_STARTED`, `PARTITION_HEALED` | core (planned) | — |
-| `election` | `ELECTION_STARTED`, `LEADER_ELECTED` | consensus (planned) | — |
-| `reconcile` | `UPDATE_RECORDED`, `CONFLICT_RESOLVED`, `MERGE_COMPLETE` | consensus (planned) | — |
-| `replication` | `WRITE_REPLICATED`, `PRIMARY_FAILED`, `BACKUP_PROMOTED` | faulttolerance (planned) | — |
-| `loadbalancer` | `TASK_ASSIGNED` | compute (planned) | — |
-| `analytics` | `JOB_STARTED`, `JOB_COMPLETE` | compute (planned) | — |
-| `mpi` | `BROADCAST`, `SCATTER`, `GATHER` | comm (planned) | — |
-| `matrix` | `MATRIX_DONE` | comm (planned) | — |
+Format on `/api/events`: unnamed SSE messages, so `new EventSource('/api/events').onmessage` gets all of them.
+Each message `data` is:
 
-Owners add rows for their own events in their PRs.
+```json
+{"id": 12, "module": "core", "type": "NODE_REGISTERED", "payload": "{...json string...}", "timestamp": "2026-10-25T07:00:00Z"}
+```
+
+`payload` is a JSON **string**: call `JSON.parse(msg.payload)` in the browser.
+
+| Module | Types |
+|---|---|
+| `core` | NODE_REGISTERED, HEARTBEAT, NODE_SILENT, CLOCK_SYNCED, NETWORK_PARTITIONED, NETWORK_HEALED, SCENARIO_PHASE |
+| `consensus` | ELECTION_STARTED, LEADER_ELECTED, RECONCILED |
+| `ft` | FT_REPLICATED, FT_PRIMARY_FAILED, FT_BACKUP_PROMOTED |
+| `compute` | TASK_CREATED, TASK_ASSIGNED, ANALYTICS_STARTED, ANALYTICS_DONE |
+| `comm` | COMM_BCAST, COMM_SCATTER, COMM_GATHER, MATRIX_DONE |
+
+Day 1 temporary names (replaced on Day 2, do not listen for these): module `coordinator` / `heartbeat` with types `NODE_REGISTERED`, `HEARTBEAT_RECEIVED`, `PARTITION_SUSPECTED`.
+
+Owners may add new types in their own module; add a row here in the same PR.
 
 ## 7. Connectivity score (Exp 1, unchanged from legacy)
 
