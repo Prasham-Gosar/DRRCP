@@ -1,0 +1,23 @@
+# Maven
+target/
+
+# H2 database
+data/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Compiled classes (legacy folder ships some)
+*.class

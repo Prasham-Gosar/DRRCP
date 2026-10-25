@@ -1,0 +1,10 @@
+ClusterA,Medical,5
+ClusterA,Food,3
+ClusterB,Medical,4
+ClusterB,Search,6
+ClusterA,Medical,2
+ClusterB,Food,5
+ClusterC,Search,7
+ClusterC,Medical,3
+ClusterA,Search,4
+ClusterC,Food,2
