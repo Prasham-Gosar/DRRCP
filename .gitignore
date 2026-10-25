@@ -1,23 +1,72 @@
-# Maven
+# ─── Build & Dependency Artifacts ───
 target/
+.gradle/
+build/
+bin/
+out/
+node_modules/
 
-# H2 database
+# ─── Packages & Archives ───
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+!.mvn/wrapper/*.jar
+
+# ─── H2 Database Files ───
 data/
+*.db
+*.lock.db
+*.trace.db
 
-# IDE
+# ─── Compiled Java Classes ───
+*.class
+
+# ─── Logs & JVM Crash Dumps ───
+*.log
+spring-shell.log
+hs_err_pid*
+replay_pid*
+
+# ─── IDE & Editor Metadata ───
+# IntelliJ IDEA
 .idea/
 *.iml
+*.iws
+*.ipr
+
+# Visual Studio Code
 .vscode/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# NetBeans
+nbproject/
+nb-configuration.xml
+
+# Editor Swaps & Backups
 *.swp
 *.swo
 *~
+*.bak
+*.tmp
+*.orig
 
-# OS
+# ─── Operating System Files ───
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Logs
-*.log
-
-# Compiled classes (legacy folder ships some)
-*.class
+# ─── Environment & Secrets ───
+.env
+.env.local
+.env.*.local
+application-local.properties
+application-local.yml
