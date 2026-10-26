@@ -1,0 +1,35 @@
+{
+  "resolutions": [
+    {
+      "resourceKey": "House-12",
+      "resourceType": "STATUS",
+      "finalValue": "NEEDS_RESCUE",
+      "method": "POLICY_RESOLVED",
+      "needsHumanReview": true,
+      "contributingUpdates": [
+        {
+          "recordId": "REC-1",
+          "value": "RESCUED",
+          "nodeId": "UAV-01",
+          "vector": { "UAV-01": 2, "UAV-02": 0, "Edge-01": 0 }
+        },
+        {
+          "recordId": "REC-2",
+          "value": "NEEDS_RESCUE",
+          "nodeId": "UAV-02",
+          "vector": { "UAV-01": 0, "UAV-02": 3, "Edge-01": 0 }
+        }
+      ],
+      "explanation": "2 concurrent, conflicting updates were found. Safety-first policy applied: NEEDS_RESCUE takes priority over RESCUED."
+    }
+  ],
+  "steps": [
+    "Starting reconciliation of 4 partition updates.",
+    "House-12: Discovered concurrent branch between UAV-01 and UAV-02.",
+    "House-12: CRDT conflict resolved via safety-first policy.",
+    "Hospital-01: Set union performed for supply supplies: [MED_KIT, WATER_PACK, RATION]."
+  ],
+  "totalUpdates": 4,
+  "conflictsDetected": 1,
+  "humanReviewRequired": 1
+}

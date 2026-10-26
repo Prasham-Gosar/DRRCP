@@ -1,0 +1,29 @@
+{
+  "primaryId": "Coordinator-Primary",
+  "backupId": "Coordinator-Backup",
+  "primaryActive": true,
+  "backupPromoted": false,
+  "currentState": {
+    "House-12": {
+      "updateId": "UPDATE-1",
+      "resourceId": "House-12",
+      "updateType": "STATUS",
+      "value": "NEEDS_RESCUE",
+      "sourceNode": "UAV-01",
+      "timestamp": 1729877160000
+    },
+    "Hospital-01": {
+      "updateId": "UPDATE-2",
+      "resourceId": "Hospital-01",
+      "updateType": "SUPPLIES",
+      "value": "DELIVERED",
+      "sourceNode": "Edge-01",
+      "timestamp": 1729877195000
+    }
+  },
+  "steps": [
+    "[Coordinator-Primary] Processing system update: UPDATE-1 | House-12 -> NEEDS_RESCUE",
+    "[Coordinator-Primary] Update successfully replicated to Coordinator-Backup.",
+    "[Coordinator-Primary] Heartbeat exchanged with replica. State consistent across cluster."
+  ]
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "id": 101,
+    "module": "core",
+    "type": "NODE_REGISTERED",
+    "payload": "{\"nodeId\":\"Edge-01\",\"ip\":\"192.168.1.201\",\"score\":296,\"status\":\"ALIVE\"}",
+    "timestamp": "2026-10-26T17:14:10Z"
+  },
+  {
+    "id": 102,
+    "module": "core",
+    "type": "HEARTBEAT",
+    "payload": "{\"nodeId\":\"UAV-01\",\"battery\":88,\"signal\":95,\"status\":\"ALIVE\"}",
+    "timestamp": "2026-10-26T17:14:15Z"
+  },
+  {
+    "id": 103,
+    "module": "comm",
+    "type": "COMM_BCAST",
+    "payload": "{\"operation\":\"BCAST\",\"numProcesses\":4,\"alert\":[911,12,5],\"status\":\"SUCCESS\"}",
+    "timestamp": "2026-10-26T17:14:22Z"
+  },
+  {
+    "id": 104,
+    "module": "consensus",
+    "type": "LEADER_ELECTED",
+    "payload": "{\"algorithm\":\"BULLY\",\"leaderId\":\"Edge-01\",\"leaderPriority\":3,\"totalMessages\":8}",
+    "timestamp": "2026-10-26T17:14:35Z"
+  },
+  {
+    "id": 105,
+    "module": "ft",
+    "type": "FT_REPLICATED",
+    "payload": "{\"resourceId\":\"House-12\",\"primary\":\"Coordinator-Primary\",\"backup\":\"Coordinator-Backup\"}",
+    "timestamp": "2026-10-26T17:14:48Z"
+  },
+  {
+    "id": 106,
+    "module": "core",
+    "type": "NODE_SILENT",
+    "payload": "{\"nodeId\":\"UAV-04\",\"silenceDurationMs\":7200,\"alert\":\"Threshold exceeded\"}",
+    "timestamp": "2026-10-26T17:15:02Z"
+  }
+]

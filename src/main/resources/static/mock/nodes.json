@@ -1,0 +1,62 @@
+[
+  {
+    "nodeId": "UAV-01",
+    "ip": "192.168.1.101",
+    "port": 5001,
+    "battery": 88,
+    "signal": 95,
+    "connectivityScore": 278,
+    "status": "ALIVE",
+    "lastHeartbeat": "2026-10-26T17:15:30Z"
+  },
+  {
+    "nodeId": "UAV-02",
+    "ip": "192.168.1.102",
+    "port": 5002,
+    "battery": 72,
+    "signal": 80,
+    "connectivityScore": 232,
+    "status": "ALIVE",
+    "lastHeartbeat": "2026-10-26T17:15:28Z"
+  },
+  {
+    "nodeId": "UAV-03",
+    "ip": "192.168.1.103",
+    "port": 5003,
+    "battery": 34,
+    "signal": 45,
+    "connectivityScore": 124,
+    "status": "ALIVE",
+    "lastHeartbeat": "2026-10-26T17:15:25Z"
+  },
+  {
+    "nodeId": "Edge-01",
+    "ip": "192.168.1.201",
+    "port": 6001,
+    "battery": 98,
+    "signal": 99,
+    "connectivityScore": 296,
+    "status": "ALIVE",
+    "lastHeartbeat": "2026-10-26T17:15:31Z"
+  },
+  {
+    "nodeId": "Edge-02",
+    "ip": "192.168.1.202",
+    "port": 6002,
+    "battery": 82,
+    "signal": 75,
+    "connectivityScore": 232,
+    "status": "ALIVE",
+    "lastHeartbeat": "2026-10-26T17:15:29Z"
+  },
+  {
+    "nodeId": "UAV-04",
+    "ip": "192.168.1.104",
+    "port": 5004,
+    "battery": 15,
+    "signal": 12,
+    "connectivityScore": 39,
+    "status": "SILENT",
+    "lastHeartbeat": "2026-10-26T17:10:12Z"
+  }
+]

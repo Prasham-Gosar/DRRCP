@@ -1,0 +1,89 @@
+{
+  "operation": "RUN_ALL",
+  "numProcesses": 4,
+  "chunkSize": 2,
+  "rootRank": 0,
+  "status": "SUCCESS",
+  "steps": [
+    "=== STEP 1: BROADCAST (MPI_Bcast) ===",
+    "[Root 0] Broadcast emergency alert [911, 12, 5] (code=911, zone=12, severity=5) to all 4 ranks",
+    "[Rank 0 (ROOT)] received alert [911, 12, 5]",
+    "[Rank 1] received alert [911, 12, 5]",
+    "[Rank 2] received alert [911, 12, 5]",
+    "[Rank 3] received alert [911, 12, 5]",
+    "=== STEP 2: SCATTER (MPI_Scatter) ===",
+    "[Root 0] Scatter supply packages [10, 20, 30, 40, 50, 60, 70, 80] into 4 chunks of size 2",
+    "[Rank 0 (ROOT)] received chunk [10, 20]",
+    "[Rank 1] received chunk [30, 40]",
+    "[Rank 2] received chunk [50, 60]",
+    "[Rank 3] received chunk [70, 80]",
+    "=== STEP 3: LOCAL DELIVERIES & WORK ===",
+    "[Rank 0] Delivered supplies: [10, 20] (rank bonus: +0)",
+    "[Rank 1] Delivered supplies: [31, 41] (rank bonus: +1)",
+    "[Rank 2] Delivered supplies: [52, 62] (rank bonus: +2)",
+    "[Rank 3] Delivered supplies: [73, 83] (rank bonus: +3)",
+    "=== STEP 4: GATHER (MPI_Gather) ===",
+    "[Root 0] Gathered delivery verification reports in rank order: [10, 20, 31, 41, 52, 62, 73, 83]",
+    "Verification: PASSED (Rank order and delivery checksums verified)"
+  ],
+  "rankResults": [
+    {
+      "rank": 0,
+      "isRoot": true,
+      "steps": [
+        "Root initialized communicator with 4 ranks",
+        "Broadcasted alert [911, 12, 5]",
+        "Scattered packages [10, 20, 30, 40, 50, 60, 70, 80]",
+        "Completed local deliveries: [10, 20]",
+        "Gathered delivery reports from all 4 ranks"
+      ],
+      "receivedAlert": [911, 12, 5],
+      "receivedChunk": [10, 20],
+      "deliveredChunk": [10, 20]
+    },
+    {
+      "rank": 1,
+      "isRoot": false,
+      "steps": [
+        "Received broadcast alert [911, 12, 5]",
+        "Received scatter chunk [30, 40]",
+        "Delivered supplies with rank bonus +1: [31, 41]",
+        "Sent delivery report to Root 0"
+      ],
+      "receivedAlert": [911, 12, 5],
+      "receivedChunk": [30, 40],
+      "deliveredChunk": [31, 41]
+    },
+    {
+      "rank": 2,
+      "isRoot": false,
+      "steps": [
+        "Received broadcast alert [911, 12, 5]",
+        "Received scatter chunk [50, 60]",
+        "Delivered supplies with rank bonus +2: [52, 62]",
+        "Sent delivery report to Root 0"
+      ],
+      "receivedAlert": [911, 12, 5],
+      "receivedChunk": [50, 60],
+      "deliveredChunk": [52, 62]
+    },
+    {
+      "rank": 3,
+      "isRoot": false,
+      "steps": [
+        "Received broadcast alert [911, 12, 5]",
+        "Received scatter chunk [70, 80]",
+        "Delivered supplies with rank bonus +3: [73, 83]",
+        "Sent delivery report to Root 0"
+      ],
+      "receivedAlert": [911, 12, 5],
+      "receivedChunk": [70, 80],
+      "deliveredChunk": [73, 83]
+    }
+  ],
+  "alertData": [911, 12, 5],
+  "scatterData": [10, 20, 30, 40, 50, 60, 70, 80],
+  "gatheredData": [10, 20, 31, 41, 52, 62, 73, 83],
+  "verified": true,
+  "durationMs": 18
+}
