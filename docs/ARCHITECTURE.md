@@ -252,3 +252,86 @@ Jackson serialises them to JSON automatically via getters.
   ]
 }
 ```
+
+## 9. DTOs & Schemas — compute + analytics-spark (Parth)
+
+All compute DTOs live in `com.drs.compute.model`.
+
+### `AssignmentResult` (load balancer task assignment output)
+
+```json
+{
+  "taskId": "TASK-01",
+  "taskDescription": "Search for survivors",
+  "workload": 3.0,
+  "success": true,
+  "chosenNodeId": "Edge-01",
+  "updatedLoad": 3.0,
+  "effectiveCapacity": 13.13,
+  "finalUtilization": 0.23,
+  "evaluations": [
+    {
+      "nodeId": "UAV-01",
+      "currentLoad": 0.0,
+      "projectedUtilization": 0.40,
+      "skipped": false,
+      "skippedReason": null,
+      "effectiveCapacity": 7.50
+    },
+    {
+      "nodeId": "Edge-01",
+      "currentLoad": 0.0,
+      "projectedUtilization": 0.23,
+      "skipped": false,
+      "skippedReason": null,
+      "effectiveCapacity": 13.13
+    }
+  ],
+  "steps": [
+    "Assigning Task: TASK-01",
+    "Description: Search for survivors",
+    "Required Workload: 3.0",
+    "UAV-01 | Current Load = 0.00 | Projected Utilization = 0.40",
+    "Edge-01 | Current Load = 0.00 | Projected Utilization = 0.23",
+    "TASK ASSIGNED SUCCESSFULLY",
+    "Task TASK-01 assigned to Edge-01",
+    "Updated Load = 3.00"
+  ]
+}
+```
+
+### `analytics_result.json` (output from `analytics-spark` standalone MapReduce)
+
+```json
+{
+  "appName": "DRS-SparkAnalytics",
+  "timestamp": "2026-10-26T23:30:00Z",
+  "inputFile": "input/rescue_tasks.txt",
+  "totalTasks": 10,
+  "totalWorkload": 41.0,
+  "countsPerCluster": {
+    "ClusterA": 4,
+    "ClusterB": 3,
+    "ClusterC": 3
+  },
+  "workloadPerCluster": {
+    "ClusterA": 14.0,
+    "ClusterB": 15.0,
+    "ClusterC": 12.0
+  },
+  "countsPerType": {
+    "Food": 3,
+    "Medical": 4,
+    "Search": 3
+  },
+  "workloadPerType": {
+    "Food": 10.0,
+    "Medical": 14.0,
+    "Search": 17.0
+  },
+  "breakdown": [
+    { "cluster": "ClusterA", "taskType": "Food", "taskCount": 1, "totalWorkload": 3.0 },
+    { "cluster": "ClusterA", "taskType": "Medical", "taskCount": 2, "totalWorkload": 7.0 }
+  ]
+}
+```
