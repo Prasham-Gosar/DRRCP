@@ -1,0 +1,15 @@
+{
+  "activeNodes": 6,
+  "healthyNodes": 5,
+  "silentNodes": 1,
+  "partitionState": "HEALTHY",
+  "primaryCoordinator": "Coordinator-Primary",
+  "primaryStatus": "ONLINE",
+  "backupCoordinator": "Coordinator-Backup",
+  "backupStatus": "STANDBY",
+  "pendingTasks": 4,
+  "assignedTasks": 24,
+  "lastElectionWinner": "Edge-01",
+  "lastCommOp": "RUN_ALL",
+  "clusterTime": "2026-10-26T17:10:00Z"
+}

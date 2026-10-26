@@ -1,0 +1,17 @@
+{
+  "algorithm": "BULLY",
+  "leaderId": "Edge-01",
+  "leaderPriority": 3,
+  "totalMessages": 8,
+  "steps": [
+    "[Bully] UAV-01 notices the coordinator is unreachable -> starts an election.",
+    "[Bully] UAV-01 --ELECTION--> UAV-02 (priority 2)",
+    "[Bully] UAV-01 --ELECTION--> Edge-01 (priority 3)",
+    "[Bully] UAV-02 --OK--> UAV-01",
+    "[Bully] Edge-01 --OK--> UAV-01",
+    "[Bully] Edge-01 starts election among nodes with priority > 3",
+    "[Bully] Edge-01 receives no responses from higher-priority nodes -> declares itself leader.",
+    "[Bully] Edge-01 --COORDINATOR--> UAV-01",
+    "[Bully] Edge-01 --COORDINATOR--> UAV-02"
+  ]
+}

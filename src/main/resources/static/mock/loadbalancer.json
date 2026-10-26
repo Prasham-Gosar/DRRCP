@@ -1,0 +1,30 @@
+[
+  {
+    "nodeId": "Edge-01",
+    "effectiveCapacity": 95,
+    "assignedTaskCount": 8,
+    "currentLoad": 0.32,
+    "status": "AVAILABLE"
+  },
+  {
+    "nodeId": "Edge-02",
+    "effectiveCapacity": 80,
+    "assignedTaskCount": 6,
+    "currentLoad": 0.40,
+    "status": "AVAILABLE"
+  },
+  {
+    "nodeId": "UAV-01",
+    "effectiveCapacity": 55,
+    "assignedTaskCount": 4,
+    "currentLoad": 0.50,
+    "status": "AVAILABLE"
+  },
+  {
+    "nodeId": "UAV-02",
+    "effectiveCapacity": 40,
+    "assignedTaskCount": 2,
+    "currentLoad": 0.45,
+    "status": "AVAILABLE"
+  }
+]

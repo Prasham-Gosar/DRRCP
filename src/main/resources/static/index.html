@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DRS Web Edition — Disaster Relief & Rescue Dashboard</title>
+  
+  <link rel="stylesheet" href="/css/app.css">
+  <!-- Vendored Chart.js (No CDN dependency) -->
+  <script src="/js/vendor/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="app-layout">
+    <!-- Sidebar dynamically injected by layout.js -->
+
+    <div id="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-container">
+        
+        <!-- Welcome Hero Banner -->
+        <div class="card mb-6" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; border: none;">
+          <div class="card-body" style="padding: 28px 32px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                  <span class="badge badge-blue">DISTRIBUTED COMPUTING</span>
+                  <span style="font-size: 0.8rem; color: #94a3b8;">Team 4 • 10 Experiments Web Dashboard</span>
+                </div>
+                <h1 style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px;">
+                  Disaster Relief & Rescue Coordination Platform
+                </h1>
+                <p style="font-size: 0.92rem; color: #cbd5e1; max-width: 800px; line-height: 1.5;">
+                  Live command centre coordinating edge nodes, UAVs, primary-backup coordinators, 
+                  MPI collective communications, and distributed task allocation across disaster zones.
+                </p>
+              </div>
+              <div style="display: flex; gap: 12px;">
+                <a href="/pages/scenario.html" class="btn btn-primary" style="box-shadow: 0 4px 14px rgba(37,99,235,0.4);">
+                  🚀 Run Full Story Demo
+                </a>
+                <a href="/pages/comm.html" class="btn btn-outline" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2);">
+                  📢 Exp 9 Collective Comm
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Cluster Nodes</span>
+              <div class="kpi-icon-wrap" style="background: #eff6ff; color: #2563eb;">📡</div>
+            </div>
+            <div class="kpi-value" id="kpi-nodes-val">6</div>
+            <div class="kpi-meta">
+              <span class="badge badge-green" id="kpi-nodes-badge">5 ALIVE</span>
+              <span style="color: #ef4444; font-weight: 600;">1 SILENT</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Coordinator Node</span>
+              <div class="kpi-icon-wrap" style="background: #ecfdf5; color: #10b981;">🛡️</div>
+            </div>
+            <div class="kpi-value" id="kpi-coord-val" style="font-size: 1.5rem;">PRIMARY</div>
+            <div class="kpi-meta">
+              <span class="badge badge-info">BACKUP STANDBY</span>
+              <span>Exp 8 Replicated</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Tasks Balanced</span>
+              <div class="kpi-icon-wrap" style="background: #fffbeb; color: #d97706;">⚖️</div>
+            </div>
+            <div class="kpi-value" id="kpi-tasks-val">28</div>
+            <div class="kpi-meta">
+              <span class="badge badge-green">BALANCED</span>
+              <span>24 assigned, 4 pending</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Network Status</span>
+              <div class="kpi-icon-wrap" style="background: #f5f3ff; color: #7c3aed;">🌐</div>
+            </div>
+            <div class="kpi-value" id="kpi-net-val" style="font-size: 1.5rem;">NORMAL</div>
+            <div class="kpi-meta">
+              <span class="badge badge-green">ALL ZONES HEALED</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Action Shortcuts -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Quick Action Hub</h2>
+              <div class="card-subtitle">Trigger distributed algorithms directly across cluster nodes</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <button id="quick-bcast-btn" class="btn btn-primary btn-sm">
+                📢 Dispatch Emergency Broadcast (Exp 9)
+              </button>
+              <a href="/pages/election.html" class="btn btn-outline btn-sm">
+                🗳️ Trigger Bully Election (Exp 4)
+              </a>
+              <a href="/pages/reconcile.html" class="btn btn-outline btn-sm">
+                🔄 Reconcile CRDT Updates (Exp 5)
+              </a>
+              <a href="/pages/faulttolerance.html" class="btn btn-outline btn-sm">
+                🛡️ Test Failover (Exp 8)
+              </a>
+              <a href="/pages/loadbalancer.html" class="btn btn-outline btn-sm">
+                ⚖️ Balance Workload (Exp 6)
+              </a>
+              <a href="/pages/matrix.html" class="btn btn-outline btn-sm">
+                🧮 Parallel Matrix Benchmark (Exp 10)
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Working Grid: Node Table & Chart + Live Events -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          
+          <!-- Left Column: Cluster Nodes Table & Battery Chart -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Active Nodes & Connectivity</h2>
+                  <div class="card-subtitle">Real-time status based on Cristian sync and heartbeats</div>
+                </div>
+                <button id="refresh-nodes-btn" class="btn btn-outline btn-sm">Refresh</button>
+              </div>
+              <div class="table-container">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Node ID</th>
+                      <th>Battery</th>
+                      <th>Signal</th>
+                      <th>Score</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboard-nodes-table">
+                    <tr><td colspan="5" style="text-align:center; padding:20px;">Loading nodes...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Battery & Score Chart -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Node Battery & Connectivity Telemetry</h2>
+                  <div class="card-subtitle">Visualized via vendored Chart.js</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div style="position: relative; height: 220px; width: 100%;">
+                  <canvas id="battery-chart"></canvas>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Live Event Stream Component -->
+          <div>
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Live Event Stream</h2>
+                  <div class="card-subtitle">Real-time SSE events delivered from Spring Boot bus</div>
+                </div>
+              </div>
+              <div class="card-body" style="padding: 0;">
+                <div id="dashboard-live-log"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 10 Experiments Roadmap Matrix -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Platform Architecture: 10 Distributed Computing Experiments</h2>
+              <div class="card-subtitle">Unified web transition roadmap for team members</div>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Exp</th>
+                  <th>Experiment Concept</th>
+                  <th>Owner</th>
+                  <th>Module / Package</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Exp 1-2</strong></td>
+                  <td>RMI Registration & Worker Thread Heartbeat Pool</td>
+                  <td>Prasham</td>
+                  <td><code>com.drs.core</code></td>
+                  <td><span class="badge badge-green">PORTED</span></td>
+                  <td><a href="/pages/nodes.html" class="btn btn-outline btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 3</strong></td>
+                  <td>Cristian's Clock Sync & Vector Clocks</td>
+                  <td>Prasham</td>
+                  <td><code>com.drs.core</code></td>
+                  <td><span class="badge badge-amber">DAY 3</span></td>
+                  <td><a href="/pages/clock.html" class="btn btn-outline btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 4</strong></td>
+                  <td>Bully & Ring Leader Election</td>
+                  <td>Grasit</td>
+                  <td><code>com.drs.consensus</code></td>
+                  <td><span class="badge badge-green">PORTED</span></td>
+                  <td><a href="/pages/election.html" class="btn btn-outline btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 5</strong></td>
+                  <td>CRDT Set Union & Vector Clock Reconciliation</td>
+                  <td>Grasit</td>
+                  <td><code>com.drs.consensus</code></td>
+                  <td><span class="badge badge-green">PORTED</span></td>
+                  <td><a href="/pages/reconcile.html" class="btn btn-outline btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 6</strong></td>
+                  <td>Capacity-Weighted Load Balancing</td>
+                  <td>Parth</td>
+                  <td><code>com.drs.compute</code></td>
+                  <td><span class="badge badge-amber">DAY 2</span></td>
+                  <td><a href="/pages/loadbalancer.html" class="btn btn-outline btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 7</strong></td>
+                  <td>MapReduce & Spark Analytics Pipeline</td>
+                  <td>Parth</td>
+                  <td><code>analytics-spark</code></td>
+                  <td><span class="badge badge-amber">DAY 3</span></td>
+                  <td><a href="/pages/analytics.html" class="btn btn-outline btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 8</strong></td>
+                  <td>Primary-Backup State Replication & Failover</td>
+                  <td>Grasit</td>
+                  <td><code>com.drs.faulttolerance</code></td>
+                  <td><span class="badge badge-green">PORTED</span></td>
+                  <td><a href="/pages/faulttolerance.html" class="btn btn-outline btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 9</strong></td>
+                  <td>MPI Collective Comms (Bcast, Scatter, Gather)</td>
+                  <td>Vedant</td>
+                  <td><code>com.drs.comm</code></td>
+                  <td><span class="badge badge-green">READY</span></td>
+                  <td><a href="/pages/comm.html" class="btn btn-primary btn-sm">Launch</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 10</strong></td>
+                  <td>Parallel Strassen / Block Matrix Multiplication</td>
+                  <td>Vedant</td>
+                  <td><code>com.drs.comm</code></td>
+                  <td><span class="badge badge-amber">DAY 2</span></td>
+                  <td><a href="/pages/matrix.html" class="btn btn-outline btn-sm">View</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/events.js"></script>
+  <script src="/js/layout.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Initialize Reusable Live Event Log
+      events.createLiveLog('dashboard-live-log', { maxEntries: 40 });
+
+      // 2. Fetch and Render Node Telemetry
+      let chartInstance = null;
+      async function loadNodes() {
+        try {
+          const nodes = await api.get('/api/nodes');
+          renderNodeTable(nodes);
+          renderChart(nodes);
+        } catch (err) {
+          console.warn('Fallback: loading mock overview/nodes', err);
+        }
+      }
+
+      function renderNodeTable(nodes) {
+        const tbody = document.getElementById('dashboard-nodes-table');
+        if (!Array.isArray(nodes) || nodes.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:16px;">No nodes available.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = nodes.map(n => `
+          <tr>
+            <td><strong>${n.nodeId}</strong></td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span>${n.battery}%</span>
+                <div class="progress" style="width:50px;">
+                  <div class="progress-bar ${n.battery > 50 ? 'progress-success' : (n.battery > 20 ? 'progress-warning' : 'progress-danger')}" 
+                       style="width:${n.battery}%;"></div>
+                </div>
+              </div>
+            </td>
+            <td>${n.signal}%</td>
+            <td><span class="badge ${n.connectivityScore >= 150 ? 'badge-green' : 'badge-amber'}">${n.connectivityScore}</span></td>
+            <td><span class="badge ${n.status === 'ALIVE' ? 'badge-green' : 'badge-red'}">${n.status}</span></td>
+          </tr>
+        `).join('');
+      }
+
+      function renderChart(nodes) {
+        const ctx = document.getElementById('battery-chart');
+        if (!ctx || !window.Chart || !Array.isArray(nodes)) return;
+
+        const labels = nodes.map(n => n.nodeId);
+        const batteryData = nodes.map(n => n.battery);
+        const signalData = nodes.map(n => n.signal);
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Battery Level (%)',
+                data: batteryData,
+                backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                borderColor: '#2563eb',
+                borderWidth: 1,
+                borderRadius: 4
+              },
+              {
+                label: 'Signal Strength (%)',
+                data: signalData,
+                backgroundColor: 'rgba(16, 185, 129, 0.75)',
+                borderColor: '#10b981',
+                borderWidth: 1,
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                grid: { color: '#f1f5f9' }
+              },
+              x: {
+                grid: { display: false }
+              }
+            },
+            plugins: {
+              legend: { position: 'top' }
+            }
+          }
+        });
+      }
+
+      // Quick Action Button Listener
+      const bcastBtn = document.getElementById('quick-bcast-btn');
+      if (bcastBtn) {
+        bcastBtn.addEventListener('click', async () => {
+          bcastBtn.disabled = true;
+          try {
+            const res = await api.post('/api/comm/bcast', {
+              numProcesses: 4,
+              chunkSize: 2,
+              rootRank: 0,
+              alertData: [911, 12, 5]
+            });
+            toast.success('Broadcast Completed', `Alert sent to ${res.numProcesses} processes.`);
+          } catch (e) {
+            toast.error('Broadcast Failed', e.message);
+          } finally {
+            bcastBtn.disabled = false;
+          }
+        });
+      }
+
+      document.getElementById('refresh-nodes-btn').addEventListener('click', loadNodes);
+
+      // Initial load
+      loadNodes();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module Name — DRS Web Edition</title>
+  
+  <!-- Core Design System -->
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div id="app-layout">
+    <!-- Sidebar is automatically injected here by /js/layout.js -->
+    
+    <!-- Main Content Area -->
+    <div id="main-wrapper">
+      <!-- Top header is automatically injected here by /js/layout.js -->
+      <div id="header-mount"></div>
+
+      <!-- Page Content -->
+      <main class="content-container">
+        
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Module Title Placeholder</h1>
+            <p class="page-description">
+              Brief explanation of the distributed computing experiment and real-world disaster relief context.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button id="btn-refresh" class="btn btn-outline">🔄 Refresh</button>
+            <button id="btn-primary-action" class="btn btn-primary">🚀 Trigger Action</button>
+          </div>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Active Nodes</span>
+              <div class="kpi-icon-wrap" style="background:#eff6ff; color:#2563eb;">📡</div>
+            </div>
+            <div class="kpi-value" id="kpi-nodes">--</div>
+            <div class="kpi-meta">
+              <span class="badge badge-green">NORMAL</span>
+              <span>All clusters responding</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">State / Status</span>
+              <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">🛡️</div>
+            </div>
+            <div class="kpi-value" id="kpi-status" style="font-size: 1.5rem;">READY</div>
+            <div class="kpi-meta">
+              <span class="badge badge-info">SYNCHRONIZED</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Throughput / Messages</span>
+              <div class="kpi-icon-wrap" style="background:#fffbeb; color:#d97706;">⚡</div>
+            </div>
+            <div class="kpi-value" id="kpi-messages">0</div>
+            <div class="kpi-meta">
+              <span>Messages exchanged</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Latency</span>
+              <div class="kpi-icon-wrap" style="background:#f5f3ff; color:#7c3aed;">⏱️</div>
+            </div>
+            <div class="kpi-value" id="kpi-latency">-- ms</div>
+            <div class="kpi-meta">
+              <span>Average response time</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-Column Working Area -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          
+          <!-- Left: Action / Controls Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Experiment Controls</h2>
+                <div class="card-subtitle">Configure parameters and trigger distributed algorithm</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <form id="experiment-form" onsubmit="return false;">
+                <div class="form-group">
+                  <label class="form-label" for="param-input">Sample Input Parameter</label>
+                  <input type="text" id="param-input" class="form-input" placeholder="e.g. UAV-01" value="UAV-01">
+                  <div class="form-help">Enter target node ID or cluster identifier</div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="param-select">Algorithm Mode</label>
+                  <select id="param-select" class="form-select">
+                    <option value="standard">Standard Execution</option>
+                    <option value="partition">Simulate Network Failure</option>
+                  </select>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                  <button type="submit" id="btn-submit" class="btn btn-primary">Execute</button>
+                  <button type="reset" class="btn btn-outline">Reset</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right: Execution Steps / Terminal -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Execution Trace</h2>
+                <div class="card-subtitle">Real-time distributed algorithm step log</div>
+              </div>
+              <button id="btn-clear-trace" class="btn btn-outline btn-sm">Clear</button>
+            </div>
+            <div class="card-body" style="padding: 12px;">
+              <div class="terminal-card" id="trace-container">
+                <div style="color: #64748b; font-style: italic;">Awaiting experiment execution...</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Data Table Section -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Cluster Node State</h2>
+              <div class="card-subtitle">Live status reported via heartbeat and event bus</div>
+            </div>
+            <span class="badge badge-green">LIVE</span>
+          </div>
+          <div class="table-container">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Node ID</th>
+                  <th>IP & Port</th>
+                  <th>Battery</th>
+                  <th>Signal</th>
+                  <th>Score</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="nodes-table-body">
+                <tr>
+                  <td colspan="6" style="text-align: center; color: #94a3b8; padding: 24px;">Loading cluster nodes...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Live Event Stream Section -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Live Module Events</h2>
+              <div class="card-subtitle">Real-time SSE events broadcasted from Spring EventPublisher</div>
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <div id="module-live-log"></div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Core Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/events.js"></script>
+  <script src="/js/layout.js"></script>
+
+  <!-- Page Logic Script Template -->
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Initialize Live-Log Widget
+      events.createLiveLog('module-live-log', { maxEntries: 50 });
+
+      // 2. Listen to module-specific events
+      // events.on('consensus', 'LEADER_ELECTED', (payload) => { ... });
+
+      // 3. Load initial data via api.get (Supports ?mock=1 automatically)
+      try {
+        const nodes = await api.get('/api/nodes');
+        renderTable(nodes);
+      } catch (err) {
+        console.warn('Could not load nodes:', err);
+      }
+
+      // 4. Form Submission Handler
+      document.getElementById('experiment-form').addEventListener('submit', async () => {
+        const param = document.getElementById('param-input').value;
+        const btn = document.getElementById('btn-submit');
+        btn.disabled = true;
+        btn.textContent = 'Running...';
+
+        try {
+          // Example: const res = await api.post('/api/your-endpoint', { param });
+          toast.success('Execution Started', `Dispatched for node ${param}`);
+        } catch (e) {
+          toast.error('Execution Failed', e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Execute';
+        }
+      });
+    });
+
+    function renderTable(nodes) {
+      const tbody = document.getElementById('nodes-table-body');
+      if (!Array.isArray(nodes) || nodes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No nodes registered.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = nodes.map(n => `
+        <tr>
+          <td><strong>${n.nodeId}</strong></td>
+          <td class="font-mono">${n.ip}:${n.port}</td>
+          <td>${n.battery}%</td>
+          <td>${n.signal}%</td>
+          <td><span class="badge ${n.connectivityScore >= 150 ? 'badge-green' : 'badge-amber'}">${n.connectivityScore}</span></td>
+          <td><span class="badge ${n.status === 'ALIVE' ? 'badge-green' : 'badge-red'}">${n.status}</span></td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
