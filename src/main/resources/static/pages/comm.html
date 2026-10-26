@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collective Communication (Exp 9) — DRS Web Edition</title>
+  
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div id="app-layout">
+    <!-- Sidebar dynamically injected by layout.js -->
+
+    <div id="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-container">
+        
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="badge badge-purple">EXPERIMENT 9</span>
+              <span class="badge badge-blue">VEDANT'S MODULE</span>
+            </div>
+            <h1 class="page-title">MPI Collective Communication</h1>
+            <p class="page-description">
+              Simulates MPI broadcast (<code>MPI_Bcast</code>), scatter (<code>MPI_Scatter</code>), and gather (<code>MPI_Gather</code>) 
+              using Java threads, blocking queues, and cyclic barriers across disaster rescue teams.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button id="btn-run-all" class="btn btn-primary" style="box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
+              🚀 Run Full Simulation (Bcast + Scatter + Gather)
+            </button>
+          </div>
+        </div>
+
+        <!-- 3-Column Configuration / Action Controls -->
+        <div class="grid grid-cols-3 gap-6 mb-6">
+          
+          <!-- Configuration Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Communicator Parameters</h2>
+                <div class="card-subtitle">Define ranks and chunk partitioning</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <form id="comm-form" onsubmit="return false;">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="input-ranks">Processes (Ranks)</label>
+                    <select id="input-ranks" class="form-select">
+                      <option value="2">2 Ranks</option>
+                      <option value="4" selected>4 Ranks (Default)</option>
+                      <option value="8">8 Ranks</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="input-chunk">Chunk Size</label>
+                    <select id="input-chunk" class="form-select">
+                      <option value="1">1 item / rank</option>
+                      <option value="2" selected>2 items / rank</option>
+                      <option value="4">4 items / rank</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="input-root">Root Rank (Command Centre)</label>
+                  <input type="number" id="input-root" class="form-input" min="0" max="7" value="0">
+                  <div class="form-help">The rank that owns source packages and receives gathered results.</div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Emergency Alert Payload [Code, Zone, Severity]</label>
+                  <div style="display: flex; gap: 8px;">
+                    <input type="number" id="alert-code" class="form-input" value="911" placeholder="Code">
+                    <input type="number" id="alert-zone" class="form-input" value="12" placeholder="Zone">
+                    <input type="number" id="alert-sev" class="form-input" value="5" placeholder="Severity">
+                  </div>
+                  <div class="form-help">Data broadcasted identical to all ranks.</div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Individual MPI Primitives Trigger Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Step-by-Step MPI Primitives</h2>
+                <div class="card-subtitle">Execute individual collective operations</div>
+              </div>
+            </div>
+            <div class="card-body" style="display: flex; flex-direction: column; gap: 12px; justify-content: center;">
+              
+              <div style="border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <strong style="font-size: 0.88rem; color: var(--color-accent);">1. MPI_Bcast</strong>
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">Root sends identical emergency alert to all ranks.</div>
+                </div>
+                <button id="btn-step-bcast" class="btn btn-outline btn-sm">Execute</button>
+              </div>
+
+              <div style="border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <strong style="font-size: 0.88rem; color: var(--color-accent);">2. MPI_Scatter</strong>
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">Root splits supply packages into equal chunks.</div>
+                </div>
+                <button id="btn-step-scatter" class="btn btn-outline btn-sm">Execute</button>
+              </div>
+
+              <div style="border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <strong style="font-size: 0.88rem; color: var(--color-accent);">3. MPI_Gather</strong>
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">Root collects all rank delivery reports in rank order.</div>
+                </div>
+                <button id="btn-step-gather" class="btn btn-outline btn-sm">Execute</button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Execution Summary / Verification Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Verification & Telemetry</h2>
+                <div class="card-subtitle">Consistency check and execution time</div>
+              </div>
+              <span id="badge-verification" class="badge badge-gray">AWAITING RUN</span>
+            </div>
+            <div class="card-body" style="display: flex; flex-direction: column; gap: 14px;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Duration</div>
+                <div style="font-size: 1.6rem; font-weight: 800;" id="metric-duration">0 ms</div>
+              </div>
+
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Gathered Checksum Status</div>
+                <div id="checksum-text" style="font-size: 0.88rem; font-weight: 600; color: var(--text-muted);">
+                  Ready for simulation.
+                </div>
+              </div>
+
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Assembled Buffer</div>
+                <div id="gathered-buffer" class="font-mono" style="background:#f1f5f9; padding:8px 12px; border-radius:4px; font-size:0.8rem; overflow-x:auto;">
+                  [ ]
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Visual Rank Grid -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">MPI Communicator Rank States</h2>
+              <div class="card-subtitle">Each thread acts as an autonomous MPI rank maintaining private mailbox buffers</div>
+            </div>
+            <span class="badge badge-info font-mono" id="comm-size-badge">SIZE = 4</span>
+          </div>
+          <div class="card-body">
+            <div id="rank-grid" class="grid grid-cols-4 gap-4">
+              <!-- Dynamically populated rank cards -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Grid: Terminal Trace + Module Live Log -->
+        <div class="grid grid-cols-2 gap-6">
+          
+          <!-- Monospace Step Trace -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Chronological Step Trace</h2>
+                <div class="card-subtitle">Rank-ordered barrier synchronized execution log</div>
+              </div>
+              <button id="btn-clear-trace" class="btn btn-outline btn-sm">Clear</button>
+            </div>
+            <div class="card-body" style="padding: 12px;">
+              <div class="terminal-card" id="comm-trace-log">
+                <div style="color: #64748b; font-style: italic;">Awaiting collective communication execution...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Comm Live Events -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Collective Comm Live Events</h2>
+                <div class="card-subtitle">Filtered SSE events for module: comm</div>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div id="comm-live-log"></div>
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/events.js"></script>
+  <script src="/js/layout.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Initialize live-log widget filtered by comm
+      events.createLiveLog('comm-live-log', { filterModule: 'comm', maxEntries: 40 });
+
+      // 2. Initial state
+      renderEmptyRankGrid(4, 0);
+
+      // 3. Setup Action Handlers
+      document.getElementById('btn-run-all').addEventListener('click', () => executeCommOp('/api/comm/run-all'));
+      document.getElementById('btn-step-bcast').addEventListener('click', () => executeCommOp('/api/comm/bcast'));
+      document.getElementById('btn-step-scatter').addEventListener('click', () => executeCommOp('/api/comm/scatter'));
+      document.getElementById('btn-step-gather').addEventListener('click', () => executeCommOp('/api/comm/gather'));
+      document.getElementById('btn-clear-trace').addEventListener('click', () => {
+        document.getElementById('comm-trace-log').innerHTML = '<div style="color: #64748b; font-style: italic;">Log cleared.</div>';
+      });
+
+      document.getElementById('input-ranks').addEventListener('change', (e) => {
+        const ranks = parseInt(e.target.value, 10);
+        document.getElementById('comm-size-badge').textContent = `SIZE = ${ranks}`;
+        const root = parseInt(document.getElementById('input-root').value, 10);
+        renderEmptyRankGrid(ranks, root);
+      });
+    });
+
+    function getPayload() {
+      const numProcesses = parseInt(document.getElementById('input-ranks').value, 10);
+      const chunkSize = parseInt(document.getElementById('input-chunk').value, 10);
+      const rootRank = parseInt(document.getElementById('input-root').value, 10);
+      const code = parseInt(document.getElementById('alert-code').value, 10) || 911;
+      const zone = parseInt(document.getElementById('alert-zone').value, 10) || 12;
+      const sev = parseInt(document.getElementById('alert-sev').value, 10) || 5;
+
+      return {
+        numProcesses,
+        chunkSize,
+        rootRank,
+        alertData: [code, zone, sev]
+      };
+    }
+
+    async function executeCommOp(endpoint) {
+      const payload = getPayload();
+      const runBtn = document.getElementById('btn-run-all');
+      runBtn.disabled = true;
+
+      try {
+        const result = await api.post(endpoint, payload);
+        renderResult(result);
+        toast.success('Execution Complete', `${result.operation} completed across ${result.numProcesses} ranks.`);
+      } catch (err) {
+        toast.error('Execution Failed', err.message);
+      } finally {
+        runBtn.disabled = false;
+      }
+    }
+
+    function renderEmptyRankGrid(count, root) {
+      const grid = document.getElementById('rank-grid');
+      let html = '';
+      for (let r = 0; r < count; r++) {
+        const isRoot = (r === root);
+        html += `
+          <div class="card" id="rank-card-${r}" style="border: 1px solid var(--border-light); background: #fbfcfe;">
+            <div class="card-header" style="padding: 10px 14px;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <strong>Rank ${r}</strong>
+                ${isRoot ? '<span class="badge badge-purple">ROOT</span>' : '<span class="badge badge-gray">WORKER</span>'}
+              </div>
+            </div>
+            <div class="card-body" style="padding: 14px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 8px;">
+              <div>
+                <span style="color: var(--text-muted);">Alert:</span> 
+                <span class="font-mono" id="rank-${r}-alert">None</span>
+              </div>
+              <div>
+                <span style="color: var(--text-muted);">Scatter Chunk:</span> 
+                <span class="font-mono" id="rank-${r}-chunk">None</span>
+              </div>
+              <div>
+                <span style="color: var(--text-muted);">Delivered:</span> 
+                <span class="font-mono" id="rank-${r}-deliv">None</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      grid.innerHTML = html;
+    }
+
+    function renderResult(result) {
+      // Update Telemetry Card
+      document.getElementById('metric-duration').textContent = `${result.durationMs || 10} ms`;
+      const verifyBadge = document.getElementById('badge-verification');
+      const verifyText = document.getElementById('checksum-text');
+      const bufferEl = document.getElementById('gathered-buffer');
+
+      if (result.verified) {
+        verifyBadge.className = 'badge badge-green';
+        verifyBadge.textContent = 'PASSED (VERIFIED)';
+        verifyText.textContent = 'Rank-order strictly preserved and local deliveries accounted for.';
+        verifyText.style.color = '#10b981';
+      } else {
+        verifyBadge.className = 'badge badge-info';
+        verifyBadge.textContent = result.operation;
+        verifyText.textContent = 'Step executed successfully.';
+        verifyText.style.color = 'inherit';
+      }
+
+      if (result.gatheredData && result.gatheredData.length > 0) {
+        bufferEl.textContent = JSON.stringify(result.gatheredData);
+      } else {
+        bufferEl.textContent = '[ ]';
+      }
+
+      // Update Rank Cards
+      renderEmptyRankGrid(result.numProcesses, result.rootRank);
+      if (Array.isArray(result.rankResults)) {
+        result.rankResults.forEach(rk => {
+          const alertEl = document.getElementById(`rank-${rk.rank}-alert`);
+          const chunkEl = document.getElementById(`rank-${rk.rank}-chunk`);
+          const delivEl = document.getElementById(`rank-${rk.rank}-deliv`);
+
+          if (alertEl && rk.receivedAlert) alertEl.textContent = JSON.stringify(rk.receivedAlert);
+          if (chunkEl && rk.receivedChunk) chunkEl.textContent = JSON.stringify(rk.receivedChunk);
+          if (delivEl && rk.deliveredChunk) delivEl.textContent = JSON.stringify(rk.deliveredChunk);
+        });
+      }
+
+      // Update Terminal Steps Trace
+      const traceContainer = document.getElementById('comm-trace-log');
+      if (Array.isArray(result.steps)) {
+        traceContainer.innerHTML = result.steps.map((st, i) => {
+          return `
+            <div class="step-row">
+              <span class="step-idx">${i + 1}</span>
+              <span class="step-text">${escapeHtml(st)}</span>
+            </div>
+          `;
+        }).join('');
+        traceContainer.scrollTop = traceContainer.scrollHeight;
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  </script>
+</body>
+</html>
