@@ -51,8 +51,14 @@ One section per person per day. Update yours in every PR.
 
 ## Parth (compute, Spark)
 
-### Day 1
--
+### Day 1 — Compute Port & Standalone Spark Module
+- Ported `com.drs.compute.model`: `RescueTask`, `LoadNode` (preserving exact legacy effective capacity and utilization formulas), `NodeTrace`, `AssignmentResult`.
+- Ported `com.drs.compute.balancer.LoadBalancer`: algorithmic logic identical to legacy `LoadBalancer` (lowest projected utilization wins, unavailable and zero-capacity nodes skipped, strict inequality for tie-breaking) with structured `AssignmentResult` and execution `steps`.
+- Built `com.drs.compute.model.RescueTaskEntity` (JPA entity for H2 persistence) and `com.drs.compute.repository.RescueTaskRepository`.
+- Built `com.drs.compute.service.LoadBalancerService` orchestrating single, batch, and entity-based task assignments, updating task status to ASSIGNED, and publishing live events via `EventPublisher.publish("compute", "TASK_ASSIGNED", result)`.
+- Created standalone `analytics-spark/` Maven module (Apache Spark 3.5.3, Java 17 `--add-opens` flags configured, shade fat JAR) with `SparkAnalyticsJob` performing MapReduce on `input/rescue_tasks.txt` and writing structured JSON results (`output/analytics_result.json`) with task counts and workload per cluster and per type. Spark is kept strictly outside the Spring Boot POM.
+- Added comprehensive unit tests in `LoadBalancerServiceTest` covering overloaded node skipped, unavailable node skipped, tie handling, no available node, legacy demo sequence, and event publishing, plus `RescueTaskEntityTest`.
+- Decisions: (1) `LoadBalancer` retains strict `<` inequality so earlier-evaluated nodes win on ties, matching legacy demo behavior. (2) Nodes with `effectiveCapacity <= 0` (e.g. zero battery/signal) are marked as skipped with clear reason in `NodeTrace`. (3) `SparkAnalyticsJob` accepts optional command-line arguments for input and output paths to facilitate seamless subprocess invocation from Spring Boot in Day 2.
 
 ### Day 2
 -
