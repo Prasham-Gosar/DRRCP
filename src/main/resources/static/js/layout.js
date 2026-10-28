@@ -23,7 +23,7 @@
     { section: 'Compute & Communication' },
     { id: 'loadbalancer', label: 'Load Balancer', icon: '⚖️', path: '/pages/loadbalancer.html', badge: 'Exp 6' },
     { id: 'analytics', label: 'Analytics & Spark', icon: '⚡', path: '/pages/analytics.html', badge: 'Exp 7' },
-    { id: 'comm', label: 'Collective Comm', icon: '📢', path: '/pages/comm.html', badge: 'Exp 9' },
+    { id: 'comm', label: 'Collective Comm', icon: '📢', path: '/pages/comm.html', aliases: ['/comm.html', '/pages/comm.html'], badge: 'Exp 9' },
     { id: 'matrix', label: 'Parallel Matrix', icon: '🧮', path: '/pages/matrix.html', badge: 'Exp 10' },
 
     { section: 'System Verification' },

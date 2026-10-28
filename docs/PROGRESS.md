@@ -87,8 +87,30 @@ One section per person per day. Update yours in every PR.
 - Tests: Added 16 JUnit 5 / MockMvc tests (`CommunicatorTest`, `CollectiveCommServiceTest`, `CollectiveCommControllerTest`) — all 76 project tests passing with 0 failures.
 - Decisions: Communicator keeps pure thread-based MPI simulation with `LinkedBlockingQueue` and `CyclicBarrier`. Output synchronization uses rank-ordered barrier rounds. Gather checksum verified against original packages + rank offsets.
 
-### Day 2
--
+### Day 2 — Experiment 9 Live: Collective Communication Page & Shell Fixes
+- Backend refactoring: Built `CommService` and `CommController` (with `CollectiveCommService` backward compatibility stub) providing REST endpoints POST `/api/comm/bcast`, `/scatter`, `/gather`, `/run-all` with request body `{ processes, chunkSize, alertText, zoneIds }`.
+- Disaster flavour: Root rank 0 operates as the "Command Centre" broadcasting an emergency alert text; scatter splits disaster zone IDs across rescue teams; teams perform local search and rescue; gather collects verified mission reports back into Command Centre in strict ascending rank order.
+- Structured response: Returns `per-rank timeline` (`rank`, `action`, `data`, `order`), `scattered` zone array, `gathered` reports array, `selfCheckPassed` boolean, and barrier-synchronized execution `steps`.
+- Input validation: Strict boundary checks for processes (2..16) and chunkSize (1..10) returning HTTP 400 Bad Request with descriptive JSON error payload.
+- SSE events: Published live events `COMM_BCAST`, `COMM_SCATTER`, `COMM_GATHER` through `EventPublisher`.
+- UI & Canvas: Built `static/pages/comm.html`, `static/comm.html`, and modular `static/js/comm.js`:
+  - Rank boxes arranged in a horizontal row with distinct Command Centre (Root) accent and worker rescue team status pills.
+  - Animated SVG flow canvas with dynamic bezier arrows and directional pulses for Bcast (outward burst), Scatter (discrete zone dispatch), and Gather (inward assembly).
+  - Prominent Self-Check Badge (`SELF-CHECK: PASSED` in green glow) with assembled buffer inspector.
+  - Interactive per-rank timeline table and monospace terminal trace.
+  - Interactive controls for processes (2..16), chunk size (1..10), root rank, and alert preset cycle.
+  - Live SSE feed filtered for module `comm`.
+  - Offline mock mode fallback (`?mock=1`).
+- Shell fixes:
+  - Fixed navigation active state in `layout.js` by adding alias mapping for both `/comm.html` and `/pages/comm.html`.
+  - Added horizontal scroll overflow support in `app.css` for up to 16 rank units.
+- Unit & Integration Tests: Added comprehensive tests in `CommServiceTest` and `CommControllerTest` verifying full workflow, self-check verification, boundary validations, and MockMvc HTTP responses.
+- Peer Review of Parth's PR #5 (`compute` & `analytics-spark`):
+  - Reviewed `LoadBalancer.java`, `LoadBalancerService.java`, `RescueTaskEntity.java`, and `SparkAnalyticsJob.java`.
+  - Logic correctly preserves legacy effective capacity calculations, strict `<` inequality tie-breaking, and exclusion of zero/negative capacity nodes.
+  - Subprocess architecture for `analytics-spark` with Java 17 `--add-opens` flags is clean and keeps Spring Boot POM unpolluted. Approved!
+- Handover / Alert for Prasham:
+  - Commit `a1c156b` merged `NodeRegistrationServiceTest.java` into `main` without the corresponding implementation classes (`NodeEntity`, `NodeEntityRepository`, `SilentNodeMonitor`, `NodeRegistrationService`). Please commit the missing classes to restore green `mvn test-compile` on `main`.
 
 ### Day 3
 -
