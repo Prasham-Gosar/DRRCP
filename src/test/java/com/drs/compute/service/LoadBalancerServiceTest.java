@@ -4,6 +4,8 @@ import com.drs.compute.model.AssignmentResult;
 import com.drs.compute.model.LoadNode;
 import com.drs.compute.model.NodeTrace;
 import com.drs.compute.model.RescueTask;
+import com.drs.compute.model.RescueTaskEntity;
+import com.drs.compute.repository.RescueTaskRepository;
 import com.drs.core.event.EventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,11 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link LoadBalancerService}.
@@ -30,6 +33,8 @@ import static org.mockito.Mockito.verify;
  * 4. No available node found
  * 5. Full legacy demo sequence execution and exact distribution
  * 6. Live event publishing to EventPublisher
+ * 7. assignAllPending sequentially assigning repository tasks
+ * 8. Dynamic node availability toggle and re-balancing
  */
 @ExtendWith(MockitoExtension.class)
 class LoadBalancerServiceTest {
@@ -37,19 +42,20 @@ class LoadBalancerServiceTest {
     @Mock
     private EventPublisher eventPublisher;
 
+    @Mock
+    private RescueTaskRepository taskRepository;
+
     private LoadBalancerService service;
 
     @BeforeEach
     void setUp() {
-        service = new LoadBalancerService(eventPublisher);
+        service = new LoadBalancerService(eventPublisher, taskRepository, null);
     }
 
     @Test
     @DisplayName("Overloaded or depleted node (effectiveCapacity <= 0) is skipped")
     void testOverloadedNodeSkipped() {
-        // Node 1 has battery=0, signal=0 -> effective capacity = 0.0 (overloaded/exhausted)
         LoadNode overloadedNode = new LoadNode("UAV-OVERLOADED", 0, 0, 10.0);
-        // Node 2 has healthy battery and signal
         LoadNode healthyNode = new LoadNode("UAV-HEALTHY", 80, 70, 10.0);
 
         List<LoadNode> nodes = new ArrayList<>(List.of(overloadedNode, healthyNode));
@@ -62,7 +68,6 @@ class LoadBalancerServiceTest {
         assertEquals(3.0, healthyNode.getCurrentLoad());
         assertEquals(0.0, overloadedNode.getCurrentLoad(), "Overloaded node should not receive load");
 
-        // Verify traces
         NodeTrace traceOverloaded = result.getEvaluations().stream()
                 .filter(t -> t.getNodeId().equals("UAV-OVERLOADED"))
                 .findFirst()
@@ -100,7 +105,6 @@ class LoadBalancerServiceTest {
     @Test
     @DisplayName("Tie handling: lowest projected utilization retains the first encountered node")
     void testTieHandling() {
-        // Both nodes have identical battery, signal, maxCapacity, and zero initial load
         LoadNode nodeA = new LoadNode("UAV-A", 80, 80, 10.0);
         LoadNode nodeB = new LoadNode("UAV-B", 80, 80, 10.0);
 
@@ -110,7 +114,6 @@ class LoadBalancerServiceTest {
         AssignmentResult result = service.assignTask(nodes, task);
 
         assertTrue(result.isSuccess());
-        // Since projectedUtilization(A) == projectedUtilization(B), strict '<' preserves nodeA
         assertEquals("UAV-A", result.getChosenNodeId(), "First node evaluated should win on a tie");
         assertEquals(2.0, nodeA.getCurrentLoad());
         assertEquals(0.0, nodeB.getCurrentLoad());
@@ -138,10 +141,6 @@ class LoadBalancerServiceTest {
     @Test
     @DisplayName("Executes exact legacy LoadBalancingDemo sequence and node failure simulation")
     void testLegacyDemoSequence() {
-        // Initial setup from legacy LoadBalancingDemo:
-        // uav1: 80% bat, 70% sig, cap=10 -> effCap = 10 * 0.75 = 7.50
-        // uav2: 60% bat, 55% sig, cap=10 -> effCap = 10 * 0.575 = 5.75
-        // edge1: 90% bat, 85% sig, cap=15 -> effCap = 15 * 0.875 = 13.125
         LoadNode uav1 = new LoadNode("UAV-01", 80, 70, 10.0);
         LoadNode uav2 = new LoadNode("UAV-02", 60, 55, 10.0);
         LoadNode edge1 = new LoadNode("Edge-01", 90, 85, 15.0);
@@ -162,15 +161,10 @@ class LoadBalancerServiceTest {
         assertEquals(6, results.size());
         assertTrue(results.stream().allMatch(AssignmentResult::isSuccess));
 
-        // In legacy:
-        // Task 1 (w=3): Edge-01 has 3/13.125 = 0.23 -> Edge-01 chosen (load 3)
-        // Task 2 (w=2): UAV-01 has 2/7.5 = 0.27 -> UAV-01 chosen (load 2)
-        // Task 3 (w=4): Edge-01 has (3+4)/13.125 = 0.53 -> Edge-01 chosen (load 7)
         assertEquals("Edge-01", results.get(0).getChosenNodeId());
         assertEquals("UAV-01", results.get(1).getChosenNodeId());
         assertEquals("Edge-01", results.get(2).getChosenNodeId());
 
-        // Node failure simulation as in legacy demo:
         uav1.setAvailable(false);
         RescueTask emergencyTask = new RescueTask("TASK-07", "Emergency survivor search", 2.0);
         AssignmentResult emergencyRes = service.assignTask(nodes, emergencyTask);
@@ -194,5 +188,81 @@ class LoadBalancerServiceTest {
         AssignmentResult captured = captor.getValue();
         assertEquals("TASK-TEST", captured.getTaskId());
         assertEquals("UAV-01", captured.getChosenNodeId());
+    }
+
+    @Test
+    @DisplayName("assignAllPending sequentially assigns repository tasks and updates status")
+    void testAssignAllPending() {
+        RescueTaskEntity t1 = new RescueTaskEntity("TASK-01", "Task 1", 3.0, "Cluster-A", "Search", "PENDING", null);
+        RescueTaskEntity t2 = new RescueTaskEntity("TASK-02", "Task 2", 2.0, "Cluster-A", "Search", "PENDING", null);
+        RescueTaskEntity t3 = new RescueTaskEntity("TASK-03", "Task 3", 4.0, "Cluster-B", "Medical", "PENDING", null);
+
+        when(taskRepository.findByStatus("PENDING")).thenReturn(new ArrayList<>(List.of(t1, t2, t3)));
+        when(taskRepository.save(any(RescueTaskEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<AssignmentResult> results = service.assignAllPending();
+
+        assertEquals(3, results.size());
+        assertTrue(results.stream().allMatch(AssignmentResult::isSuccess));
+
+        assertEquals("ASSIGNED", t1.getStatus());
+        assertNotNull(t1.getAssignedNodeId());
+        assertEquals("ASSIGNED", t2.getStatus());
+        assertNotNull(t2.getAssignedNodeId());
+        assertEquals("ASSIGNED", t3.getStatus());
+        assertNotNull(t3.getAssignedNodeId());
+
+        verify(taskRepository, times(3)).save(any(RescueTaskEntity.class));
+        verify(eventPublisher, atLeast(3)).publish(eq("compute"), eq("TASK_ASSIGNED"), any());
+    }
+
+    @Test
+    @DisplayName("assignAllPending returns empty list when no pending tasks exist")
+    void testAssignAllPendingEmpty() {
+        when(taskRepository.findByStatus("PENDING")).thenReturn(List.of());
+
+        List<AssignmentResult> results = service.assignAllPending();
+
+        assertTrue(results.isEmpty());
+        verify(taskRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Dynamic availability toggle skips unavailable node and selects alternative")
+    void testNodeAvailabilityToggleAndRebalance() {
+        // UAV-01 is initial default node
+        service.setNodeAvailability("UAV-01", false);
+
+        List<LoadNode> nodes = service.getCandidateNodes();
+        LoadNode uav01 = nodes.stream().filter(n -> n.getNodeId().equals("UAV-01")).findFirst().orElseThrow();
+        assertFalse(uav01.isAvailable());
+
+        RescueTaskEntity entity = new RescueTaskEntity("TASK-FAILOVER", "Failover task", 2.0, "Cluster-A", "Search", "PENDING", null);
+        when(taskRepository.findById("TASK-FAILOVER")).thenReturn(Optional.of(entity));
+        when(taskRepository.save(any(RescueTaskEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        AssignmentResult result = service.assignTaskEntity("TASK-FAILOVER");
+
+        assertTrue(result.isSuccess());
+        assertNotEquals("UAV-01", result.getChosenNodeId());
+        assertEquals("ASSIGNED", entity.getStatus());
+    }
+
+    @Test
+    @DisplayName("createTask generates default taskId and publishes TASK_CREATED event")
+    void testCreateTask() {
+        when(taskRepository.count()).thenReturn(5L);
+        when(taskRepository.save(any(RescueTaskEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        RescueTaskEntity toCreate = new RescueTaskEntity(null, "Emergency medical triage", 3.5, "Cluster-B", "Medical", null, null);
+        RescueTaskEntity created = service.createTask(toCreate);
+
+        assertNotNull(created.getTaskId());
+        assertEquals("PENDING", created.getStatus());
+        assertEquals("Emergency medical triage", created.getDescription());
+        assertEquals(3.5, created.getWorkload());
+
+        verify(taskRepository).save(any(RescueTaskEntity.class));
+        verify(eventPublisher).publish(eq("compute"), eq("TASK_CREATED"), eq(created));
     }
 }

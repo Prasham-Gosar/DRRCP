@@ -1,35 +1,35 @@
-# Architecture
+﻿# Architecture
 
 ## 1. Folder layout
 
 ```
 disaster-relief-web/
-├── pom.xml
-├── README.md
-├── .github/pull_request_template.md
-├── docs/ARCHITECTURE.md, docs/PROGRESS.md
-├── legacy/                         original console experiments (read-only reference)
-├── analytics-spark/                Exp 7 Spark module (Parth) — separate Maven module, launched as subprocess
-├── data/                           H2 database files (git-ignored)
-└── src/
-    ├── main/java/com/drs/
-    │   ├── DrsApplication.java
-    │   ├── core/                   Prasham — Exp 1,2,3, partition, scenario runner, event bus
-    │   │   ├── config/             SchedulingConfig
-    │   │   ├── controller/         CoordinatorController
-    │   │   ├── event/              EventPublisher, EventLog, EventLogRepository, EventController
-    │   │   ├── model/              NodeStatus (JPA entity, Serializable), NodeStatusRepository
-    │   │   ├── rmi/                NodeService (RMI contract; registry on 1099 comes later)
-    │   │   └── service/            CoordinatorService
-    │   ├── consensus/              Grasit — Exp 4 (Bully/Ring), Exp 5 (vector clock + CRDT)
-    │   ├── faulttolerance/         Grasit — Exp 8 (primary-backup)
-    │   ├── compute/                Parth  — Exp 6 (load balancing), Exp 7 (MapReduce/Spark client)
-    │   └── comm/                   Vedant — Exp 9 (broadcast/scatter/gather), Exp 10 (parallel matrix)
-    ├── main/resources/
-    │   ├── application.properties
-    │   └── static/                 index.html, css/app.css, js/api.js, js/events.js, js/layout.js (Vedant),
-    │                               each person's own pages
-    └── test/                       JUnit 5 + MockMvc; uses in-memory H2
+â”œâ”€â”€ pom.xml
+â”œâ”€â”€ README.md
+â”œâ”€â”€ .github/pull_request_template.md
+â”œâ”€â”€ docs/ARCHITECTURE.md, docs/PROGRESS.md
+â”œâ”€â”€ legacy/                         original console experiments (read-only reference)
+â”œâ”€â”€ analytics-spark/                Exp 7 Spark module (Parth) â€” separate Maven module, launched as subprocess
+â”œâ”€â”€ data/                           H2 database files (git-ignored)
+â””â”€â”€ src/
+    â”œâ”€â”€ main/java/com/drs/
+    â”‚   â”œâ”€â”€ DrsApplication.java
+    â”‚   â”œâ”€â”€ core/                   Prasham â€” Exp 1,2,3, partition, scenario runner, event bus
+    â”‚   â”‚   â”œâ”€â”€ config/             SchedulingConfig
+    â”‚   â”‚   â”œâ”€â”€ controller/         CoordinatorController
+    â”‚   â”‚   â”œâ”€â”€ event/              EventPublisher, EventLog, EventLogRepository, EventController
+    â”‚   â”‚   â”œâ”€â”€ model/              NodeStatus (JPA entity, Serializable), NodeStatusRepository
+    â”‚   â”‚   â”œâ”€â”€ rmi/                NodeService (RMI contract; registry on 1099 comes later)
+    â”‚   â”‚   â””â”€â”€ service/            CoordinatorService
+    â”‚   â”œâ”€â”€ consensus/              Grasit â€” Exp 4 (Bully/Ring), Exp 5 (vector clock + CRDT)
+    â”‚   â”œâ”€â”€ faulttolerance/         Grasit â€” Exp 8 (primary-backup)
+    â”‚   â”œâ”€â”€ compute/                Parth  â€” Exp 6 (load balancing), Exp 7 (MapReduce/Spark client)
+    â”‚   â””â”€â”€ comm/                   Vedant â€” Exp 9 (broadcast/scatter/gather), Exp 10 (parallel matrix)
+    â”œâ”€â”€ main/resources/
+    â”‚   â”œâ”€â”€ application.properties
+    â”‚   â””â”€â”€ static/                 index.html, css/app.css, js/api.js, js/events.js, js/layout.js (Vedant),
+    â”‚                               each person's own pages
+    â””â”€â”€ test/                       JUnit 5 + MockMvc; uses in-memory H2
 ```
 
 ## 2. Packages and owners
@@ -47,7 +47,7 @@ Never edit another person's package without telling them.
 ## 3. Conventions
 
 * REST under `/api/...`, JSON only. Thin `@RestController`, logic in `@Service`.
-* No `System.out` in services — return a result object with a `steps` list for the UI and call
+* No `System.out` in services â€” return a result object with a `steps` list for the UI and call
   `EventPublisher.publish(module, type, payload)` for live events.
 * Branch `feature/<name>-<topic>`, PR to `main`, 1 review.
 
@@ -63,9 +63,9 @@ Each message `data` is:
 {"id": 12, "module": "coordinator", "type": "NODE_REGISTERED", "payload": "{...json string...}", "timestamp": "2026-10-25T07:00:00Z"}
 ```
 
-`payload` is a JSON **string** — call `JSON.parse(msg.payload)` in the browser.
+`payload` is a JSON **string** â€” call `JSON.parse(msg.payload)` in the browser.
 
-## 5. REST contract (agreed in the project plan — everyone follows this)
+## 5. REST contract (agreed in the project plan â€” everyone follows this)
 
 Status: **built** = exists on main, **temp** = Day 1 placeholder that Day 2 replaces, **planned** = owner implements it on the day shown in the plan.
 
@@ -102,11 +102,11 @@ Temporary Day 1 endpoints (replaced by the `/api/nodes/...` ones on Day 2, do no
 
 ### compute (Parth)
 
-| Endpoint | Purpose |
-|---|---|
-| `POST /api/tasks`, `GET /api/tasks`, `POST /api/tasks/{id}/assign`, `DELETE /api/tasks` | Rescue tasks |
-| `POST /api/loadbalancer/assign-all`, `GET /api/loadbalancer/nodes` | Exp6 |
-| `POST /api/analytics/mapreduce/run`, `GET /api/analytics/mapreduce/latest`, `GET /api/analytics/mapreduce/history` | Exp7 |
+| Endpoint | Purpose | Status |
+|---|---|---|
+| `POST /api/tasks`, `GET /api/tasks`, `POST /api/tasks/{id}/assign`, `DELETE /api/tasks` | Rescue tasks | **built** (Day 2) |
+| `POST /api/loadbalancer/assign-all`, `GET /api/loadbalancer/nodes` | Exp6 | **built** (Day 2) |
+| `POST /api/analytics/mapreduce/run`, `GET /api/analytics/mapreduce/latest`, `GET /api/analytics/mapreduce/history` | Exp7 | planned (Day 3) |
 
 ### comm (Vedant)
 
@@ -140,10 +140,10 @@ Owners may add new types in their own module; add a row here in the same PR.
 
 ## 7. Connectivity score (Exp 1, unchanged from legacy)
 
-`score = 2 × signal + battery` → `>=150 STABLE`, `>=100 AT_RISK`, `>=50 PARTITION_LIKELY`, else `PARTITIONED`.
+`score = 2 Ã— signal + battery` â†’ `>=150 STABLE`, `>=100 AT_RISK`, `>=50 PARTITION_LIKELY`, else `PARTITIONED`.
 Silence threshold 6000 ms, monitor every 1 s, worker pool 4 threads.
 
-## 8. DTOs — consensus + faulttolerance (Grasit)
+## 8. DTOs â€” consensus + faulttolerance (Grasit)
 
 All DTOs live in `com.drs.consensus.model` and `com.drs.faulttolerance.model`.
 Jackson serialises them to JSON automatically via getters.
@@ -253,7 +253,7 @@ Jackson serialises them to JSON automatically via getters.
 }
 ```
 
-## 9. DTOs & Schemas — compute + analytics-spark (Parth)
+## 9. DTOs & Schemas â€” compute + analytics-spark (Parth)
 
 All compute DTOs live in `com.drs.compute.model`.
 
