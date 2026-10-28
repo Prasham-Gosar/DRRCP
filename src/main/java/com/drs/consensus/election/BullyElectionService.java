@@ -47,14 +47,14 @@ public class BullyElectionService {
         queue.add(initiator);
         visited.add(initiator.getId());
 
-        ElectionNode leader = null;
+        ElectionNode leader = initiator;
         while (!queue.isEmpty()) {
             ElectionNode current = queue.poll();
             List<ElectionNode> higher = higherPriorityAlive(nodes, current);
             if (higher.isEmpty()) {
                 steps.add("[Bully] " + current.getId()
                         + " receives no responses from higher-priority nodes -> declares itself leader.");
-                if (leader == null) leader = current;
+                leader = current;
                 continue;
             }
             for (ElectionNode h : higher) {
