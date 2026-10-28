@@ -1,33 +1,54 @@
 package com.drs.comm.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Request payload for collective communication operations.
+ * Supports both modern disaster-flavoured parameters (processes, chunkSize, alertText, zoneIds)
+ * and legacy numeric parameters (alertData, packagesData) for full backwards compatibility.
  */
 public class CommRequest {
 
-    private int numProcesses = 4;
+    @JsonProperty("processes")
+    @JsonAlias({"numProcesses", "ranks"})
+    private int processes = 4;
+
     private int chunkSize = 2;
     private int rootRank = 0;
+    private String alertText = "CRITICAL: Sector 4 Flash Flood Warning - Immediate Evacuation & Relief Operation";
     private int[] alertData = new int[]{911, 12, 5};
+    private List<String> zoneIds = new ArrayList<>();
     private int[] packagesData;
 
     public CommRequest() {
     }
 
-    public CommRequest(int numProcesses, int chunkSize, int rootRank) {
-        this.numProcesses = numProcesses;
+    public CommRequest(int processes, int chunkSize, int rootRank) {
+        this.processes = processes;
         this.chunkSize = chunkSize;
         this.rootRank = rootRank;
     }
 
+    public int getProcesses() {
+        return processes;
+    }
+
+    public void setProcesses(int processes) {
+        this.processes = processes;
+    }
+
+    // Alias for backwards compatibility
     public int getNumProcesses() {
-        return numProcesses;
+        return processes;
     }
 
     public void setNumProcesses(int numProcesses) {
-        this.numProcesses = numProcesses;
+        this.processes = numProcesses;
     }
 
     public int getChunkSize() {
@@ -46,12 +67,28 @@ public class CommRequest {
         this.rootRank = rootRank;
     }
 
+    public String getAlertText() {
+        return alertText;
+    }
+
+    public void setAlertText(String alertText) {
+        this.alertText = alertText;
+    }
+
     public int[] getAlertData() {
         return alertData;
     }
 
     public void setAlertData(int[] alertData) {
         this.alertData = alertData;
+    }
+
+    public List<String> getZoneIds() {
+        return zoneIds;
+    }
+
+    public void setZoneIds(List<String> zoneIds) {
+        this.zoneIds = zoneIds;
     }
 
     public int[] getPackagesData() {
@@ -65,10 +102,12 @@ public class CommRequest {
     @Override
     public String toString() {
         return "CommRequest{" +
-                "numProcesses=" + numProcesses +
+                "processes=" + processes +
                 ", chunkSize=" + chunkSize +
                 ", rootRank=" + rootRank +
+                ", alertText='" + alertText + '\'' +
                 ", alertData=" + Arrays.toString(alertData) +
+                ", zoneIds=" + zoneIds +
                 ", packagesData=" + Arrays.toString(packagesData) +
                 '}';
     }
