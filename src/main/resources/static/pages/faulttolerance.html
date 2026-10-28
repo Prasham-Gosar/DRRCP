@@ -4,11 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fault Tolerance (Exp 8) — DRS Web Edition</title>
-  <meta name="description" content="Primary-backup replication and failover for disaster relief coordination.">
+  <meta name="description" content="Primary-backup replication, automated failover promotion, and diff verification.">
   <link rel="stylesheet" href="/css/app.css">
   <style>
-    /* ── FT-specific page styles (scoped) ── */
-
+    /* Scoped Fault Tolerance Design Styles */
     .ft-diagram {
       display: flex;
       align-items: center;
@@ -20,7 +19,7 @@
       margin-bottom: 4px;
     }
     .ft-node-box {
-      width: 180px;
+      width: 220px;
       padding: 20px 16px;
       border-radius: var(--radius-md);
       text-align: center;
@@ -42,8 +41,13 @@
       border-color: var(--border-medium);
     }
     .ft-node-box.backup-promoted {
-      border-color: var(--color-accent);
-      box-shadow: 0 0 0 3px rgba(37,99,235,0.18), var(--shadow-md);
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 4px rgba(245,158,11,0.25), var(--shadow-md);
+      animation: crown-glow 1.5s infinite alternate;
+    }
+    @keyframes crown-glow {
+      0% { box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+      100% { box-shadow: 0 0 16px rgba(245,158,11,0.5), 0 0 0 5px rgba(245,158,11,0.3); }
     }
     .ft-node-label {
       font-size: 0.75rem;
@@ -60,7 +64,7 @@
     .ft-node-status {
       font-size: 0.78rem;
       font-weight: 600;
-      padding: 2px 10px;
+      padding: 3px 12px;
       border-radius: var(--radius-full);
       display: inline-block;
     }
@@ -81,35 +85,38 @@
       color: var(--color-danger);
       text-decoration: line-through;
     }
-
-    .update-form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    .replica-state-card {
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      background: var(--bg-surface);
+      overflow: hidden;
     }
-
-    .state-entry {
+    .replica-header {
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 0.9rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 12px;
       border-bottom: 1px solid var(--border-light);
-      font-size: 0.82rem;
-      transition: background var(--transition-fast);
+      background: #f8fafc;
     }
-    .state-entry:hover {
-      background: var(--bg-app);
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
     }
-    .state-entry:last-child {
-      border-bottom: none;
-    }
-    .state-entry-id {
+    .diff-table th {
+      background: #f8fafc;
+      padding: 8px 12px;
       font-weight: 600;
-    }
-    .state-entry-value {
-      font-family: ui-monospace, monospace;
       font-size: 0.78rem;
-      color: var(--text-muted);
+      text-align: left;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .diff-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f1f5f9;
     }
   </style>
 </head>
@@ -129,12 +136,13 @@
             </div>
             <h1 class="page-title">Primary-Backup Fault Tolerance</h1>
             <p class="page-description">
-              Demonstrates primary-backup replication: every update processed by the primary coordinator
-              is synchronously replicated to a hot standby. When the primary fails, the backup is
-              automatically promoted — preserving all previously replicated data and continuing operations.
+              Demonstrates state machine replication: updates received by the primary coordinator are
+              synchronously replicated to the standby backup. If the primary fails, the backup is
+              promoted seamlessly with zero data loss.
             </p>
           </div>
-          <div style="display: flex; gap: 10px;">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="btn-run-demo" class="btn btn-outline">🚀 Run Failover Demo</button>
             <button id="btn-reset" class="btn btn-outline">🔄 Reset System</button>
           </div>
         </div>
@@ -143,10 +151,10 @@
         <div class="grid grid-cols-4 gap-4 mb-6">
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-title">Primary</span>
+              <span class="kpi-title">Primary Node</span>
               <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">🖥️</div>
             </div>
-            <div class="kpi-value" id="kpi-primary" style="font-size: 1.3rem;">Coordinator-Primary</div>
+            <div class="kpi-value" id="kpi-primary" style="font-size: 1.25rem;">Coordinator-Primary</div>
             <div class="kpi-meta">
               <span class="badge badge-green" id="kpi-primary-status">ACTIVE</span>
             </div>
@@ -154,10 +162,10 @@
 
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-title">Backup</span>
+              <span class="kpi-title">Backup Replica</span>
               <div class="kpi-icon-wrap" style="background:#eff6ff; color:#2563eb;">🛡️</div>
             </div>
-            <div class="kpi-value" id="kpi-backup" style="font-size: 1.3rem;">Coordinator-Backup</div>
+            <div class="kpi-value" id="kpi-backup" style="font-size: 1.25rem;">Coordinator-Backup</div>
             <div class="kpi-meta">
               <span class="badge badge-gray" id="kpi-backup-status">STANDBY</span>
             </div>
@@ -165,71 +173,72 @@
 
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-title">Replicated Updates</span>
+              <span class="kpi-title">Replicated Entries</span>
               <div class="kpi-icon-wrap" style="background:#fffbeb; color:#d97706;">📋</div>
             </div>
             <div class="kpi-value" id="kpi-updates">0</div>
             <div class="kpi-meta">
-              <span>Stored in backup state</span>
+              <span>Synced across replicas</span>
             </div>
           </div>
 
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-title">System Health</span>
+              <span class="kpi-title">Cluster Health</span>
               <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">💚</div>
             </div>
-            <div class="kpi-value" id="kpi-health" style="font-size: 1.5rem;">HEALTHY</div>
+            <div class="kpi-value" id="kpi-health" style="font-size: 1.35rem;">HEALTHY</div>
             <div class="kpi-meta">
-              <span class="badge badge-green" id="kpi-health-badge">NORMAL</span>
+              <span class="badge badge-green" id="kpi-health-badge">SYNCHRONIZED</span>
             </div>
           </div>
         </div>
 
-        <!-- Architecture Diagram -->
+        <!-- Architecture Topology Diagram -->
         <div class="card mb-6">
           <div class="card-header">
             <div>
-              <h2 class="card-title">Replication Architecture</h2>
-              <div class="card-subtitle">Live visual of the primary-backup topology</div>
+              <h2 class="card-title">Live Replication Topology</h2>
+              <div class="card-subtitle">State transition and synchronous heartbeat channel</div>
             </div>
           </div>
           <div class="card-body">
-            <div class="ft-diagram" id="ft-diagram">
-              <!-- Populated by JS -->
-            </div>
+            <div class="ft-diagram" id="ft-diagram"></div>
           </div>
         </div>
 
-        <!-- 2-Column: Controls + Trace -->
+        <!-- 2-Column: Send Updates & Trace -->
         <div class="grid grid-cols-2 gap-6 mb-6">
-
-          <!-- Left: Send Update + Fail -->
+          
+          <!-- Send Update & Controls Card -->
           <div class="card">
             <div class="card-header">
               <div>
                 <h2 class="card-title">System Controls</h2>
-                <div class="card-subtitle">Send updates or trigger primary failure</div>
+                <div class="card-subtitle">Dispatch new update to active leader or simulate failure</div>
               </div>
             </div>
             <div class="card-body">
               <form id="update-form" onsubmit="return false;">
-                <div class="update-form-grid">
+                <div class="grid grid-cols-2 gap-4">
                   <div class="form-group">
                     <label class="form-label" for="resource-id">Resource ID</label>
                     <input type="text" id="resource-id" class="form-input" placeholder="e.g. House-12" value="House-12">
                   </div>
                   <div class="form-group">
                     <label class="form-label" for="update-type">Update Type</label>
-                    <select id="update-type" class="form-select">
+                    <select id="update-type" class="form-input">
                       <option value="STATUS">STATUS</option>
                       <option value="SUPPLIES">SUPPLIES</option>
                       <option value="PERSONNEL">PERSONNEL</option>
                     </select>
                   </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
                   <div class="form-group">
                     <label class="form-label" for="update-value">Value</label>
-                    <select id="update-value" class="form-select">
+                    <select id="update-value" class="form-input">
                       <option value="NEEDS_RESCUE">NEEDS_RESCUE</option>
                       <option value="RESCUED">RESCUED</option>
                       <option value="MEDICAL_ASSISTANCE">MEDICAL_ASSISTANCE</option>
@@ -240,80 +249,125 @@
                   </div>
                   <div class="form-group">
                     <label class="form-label" for="source-node">Source Node</label>
-                    <select id="source-node" class="form-select">
+                    <select id="source-node" class="form-input">
                       <option value="UAV-01">UAV-01</option>
                       <option value="UAV-02">UAV-02</option>
                       <option value="UAV-03">UAV-03</option>
                       <option value="Edge-01">Edge-01</option>
-                      <option value="UAV-04">UAV-04</option>
+                      <option value="Edge-02">Edge-02</option>
                     </select>
                   </div>
                 </div>
-                <div style="display: flex; gap: 10px; margin-top: 16px;">
-                  <button type="submit" id="btn-send-update" class="btn btn-primary">📤 Send Update</button>
-                  <button type="button" id="btn-fail-primary" class="btn" style="background: var(--color-danger); color: white; border: none;">💥 Fail Primary</button>
-                  <button type="button" id="btn-run-demo" class="btn btn-outline">🚀 Run Full Demo</button>
+
+                <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+                  <button type="submit" id="btn-send-update" class="btn btn-primary">📤 Replicate Update</button>
+                  <button type="button" id="btn-fail-primary" class="btn" style="background: #ef4444; color: white; border: none;">💥 Kill Primary</button>
                 </div>
               </form>
             </div>
           </div>
 
-          <!-- Right: Step Trace -->
+          <!-- Step Trace Card -->
           <div class="card">
             <div class="card-header">
               <div>
-                <h2 class="card-title">Operation Trace</h2>
-                <div class="card-subtitle">Step-by-step replication log</div>
+                <h2 class="card-title">Replication Step Trace</h2>
+                <div class="card-subtitle">Real-time coordinator transaction trace</div>
               </div>
               <button id="btn-clear-trace" class="btn btn-outline btn-sm">Clear</button>
             </div>
             <div class="card-body" style="padding: 0;">
-              <div class="terminal-card" id="trace-container" style="max-height: 320px; overflow-y: auto;">
-                <div style="color: #64748b; font-style: italic; padding: 24px; text-align: center;">
-                  Send an update or trigger a failure to see the replication trace.
-                </div>
+              <div id="trace-container" style="max-height: 250px; overflow-y: auto; background: #0f172a; color: #f8fafc; font-family: var(--font-mono, monospace); font-size: 0.8rem; padding: 12px;">
+                <div style="color: #64748b; font-style: italic;">Send an update or trigger failure to see replication trace.</div>
               </div>
             </div>
           </div>
+
         </div>
 
-        <!-- Replicated State Table -->
+        <!-- Primary vs Backup State Tables & Diff View -->
         <div class="card mb-6">
           <div class="card-header">
             <div>
-              <h2 class="card-title">Replicated System State</h2>
-              <div class="card-subtitle">Current state stored in the backup/promoted node</div>
+              <h2 class="card-title">Replica State Maps &amp; Synchronization Diff</h2>
+              <div class="card-subtitle">Verify state consistency between Primary Coordinator and Backup Standby</div>
             </div>
-            <span class="badge badge-green" id="state-live-badge">LIVE</span>
+            <span class="badge badge-green" id="diff-status-badge">SYNCHRONIZED (0 DIFF)</span>
           </div>
-          <div class="table-container">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Update ID</th>
-                  <th>Resource</th>
-                  <th>Type</th>
-                  <th>Value</th>
-                  <th>Source</th>
-                </tr>
-              </thead>
-              <tbody id="state-table-body">
-                <tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:24px;">No updates replicated yet.</td></tr>
-              </tbody>
-            </table>
+          <div class="card-body">
+            
+            <!-- 2-Column: Primary State vs Backup State -->
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              
+              <!-- Primary Card -->
+              <div class="replica-state-card">
+                <div class="replica-header">
+                  <span id="primary-card-title">🖥️ Primary: Coordinator-Primary</span>
+                  <span class="badge badge-green" id="primary-card-badge">ACTIVE</span>
+                </div>
+                <div style="max-height: 200px; overflow-y: auto;">
+                  <table class="diff-table">
+                    <thead>
+                      <tr><th>Resource</th><th>Type</th><th>Value</th><th>Source</th></tr>
+                    </thead>
+                    <tbody id="primary-table-body">
+                      <tr><td colspan="4" style="text-align: center; color: #94a3b8; font-style: italic;">No entries.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Backup Card -->
+              <div class="replica-state-card">
+                <div class="replica-header">
+                  <span id="backup-card-title">🛡️ Backup: Coordinator-Backup</span>
+                  <span class="badge badge-gray" id="backup-card-badge">STANDBY</span>
+                </div>
+                <div style="max-height: 200px; overflow-y: auto;">
+                  <table class="diff-table">
+                    <thead>
+                      <tr><th>Resource</th><th>Type</th><th>Value</th><th>Source</th></tr>
+                    </thead>
+                    <tbody id="backup-table-body">
+                      <tr><td colspan="4" style="text-align: center; color: #94a3b8; font-style: italic;">No entries.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Diff Verification Table -->
+            <div style="border-top: 1px solid var(--border-light); padding-top: 14px;">
+              <h3 style="font-size: 0.88rem; font-weight: 700; margin-bottom: 8px;">State Diff Verification</h3>
+              <table class="diff-table">
+                <thead>
+                  <tr>
+                    <th>Resource Key</th>
+                    <th>Primary Value</th>
+                    <th>Backup Value</th>
+                    <th>Replication Status</th>
+                  </tr>
+                </thead>
+                <tbody id="diff-table-body">
+                  <tr><td colspan="4" style="text-align: center; color: #94a3b8; font-style: italic;">No updates in system.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
           </div>
         </div>
 
-        <!-- Live Events -->
+        <!-- Live FT Events SSE -->
         <div class="card">
           <div class="card-header">
             <div>
-              <h2 class="card-title">Live FT Events</h2>
-              <div class="card-subtitle">Real-time SSE events from the fault-tolerance module</div>
+              <h2 class="card-title">Live Fault Tolerance Events</h2>
+              <div class="card-subtitle">Real-time SSE notifications from /api/events (ft channel)</div>
             </div>
           </div>
           <div class="card-body" style="padding: 0;">
-            <div id="module-live-log"></div>
+            <div id="module-live-log" style="max-height: 180px; overflow-y: auto;"></div>
           </div>
         </div>
 
@@ -324,307 +378,6 @@
   <script src="/js/api.js"></script>
   <script src="/js/events.js"></script>
   <script src="/js/layout.js"></script>
-
-  <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    'use strict';
-
-    let state = {
-      primaryId: 'Coordinator-Primary',
-      backupId: 'Coordinator-Backup',
-      primaryActive: true,
-      backupPromoted: false,
-      currentState: {},
-      steps: []
-    };
-
-    // ── Render Functions ──
-    function renderDiagram() {
-      const diagram = document.getElementById('ft-diagram');
-      const primaryClass = state.primaryActive ? 'primary-active' : 'primary-failed';
-      const backupClass = state.backupPromoted ? 'backup-promoted' : 'backup-standby';
-      const arrowClass = state.primaryActive ? '' : ' broken';
-      const primaryStatusColor = state.primaryActive ? 'background: var(--color-success-bg); color: var(--color-success);' : 'background: var(--color-danger-bg); color: var(--color-danger);';
-      const backupStatusColor = state.backupPromoted ? 'background: var(--color-accent-subtle); color: var(--color-accent);' : 'background: #f1f5f9; color: var(--text-muted);';
-
-      diagram.innerHTML = `
-        <div class="ft-node-box ${primaryClass}">
-          <div class="ft-node-label" style="color: var(--text-muted);">Primary</div>
-          <div class="ft-node-id">${state.primaryId}</div>
-          <div class="ft-node-status" style="${primaryStatusColor}">
-            ${state.primaryActive ? '✅ ACTIVE' : '❌ FAILED'}
-          </div>
-        </div>
-        <div class="ft-arrow${arrowClass}">
-          <span>Replication</span>
-          <span class="ft-arrow-line">${state.primaryActive ? '→→→' : '✕✕✕'}</span>
-          <span>${state.primaryActive ? 'Sync' : 'Broken'}</span>
-        </div>
-        <div class="ft-node-box ${backupClass}">
-          <div class="ft-node-label" style="color: var(--text-muted);">Backup</div>
-          <div class="ft-node-id">${state.backupId}</div>
-          <div class="ft-node-status" style="${backupStatusColor}">
-            ${state.backupPromoted ? '👑 ACTIVE PRIMARY' : '🛡️ STANDBY'}
-          </div>
-        </div>
-      `;
-    }
-
-    function renderKpis() {
-      const updateCount = Object.keys(state.currentState).length;
-
-      document.getElementById('kpi-primary').textContent = state.primaryId;
-      document.getElementById('kpi-backup').textContent = state.backupId;
-      document.getElementById('kpi-updates').textContent = updateCount;
-
-      const primaryBadge = document.getElementById('kpi-primary-status');
-      if (state.primaryActive) {
-        primaryBadge.textContent = 'ACTIVE';
-        primaryBadge.className = 'badge badge-green';
-      } else {
-        primaryBadge.textContent = 'FAILED';
-        primaryBadge.className = 'badge badge-red';
-      }
-
-      const backupBadge = document.getElementById('kpi-backup-status');
-      if (state.backupPromoted) {
-        backupBadge.textContent = 'ACTIVE PRIMARY';
-        backupBadge.className = 'badge badge-info';
-      } else {
-        backupBadge.textContent = 'STANDBY';
-        backupBadge.className = 'badge badge-gray';
-      }
-
-      const healthEl = document.getElementById('kpi-health');
-      const healthBadge = document.getElementById('kpi-health-badge');
-      if (state.primaryActive) {
-        healthEl.textContent = 'HEALTHY';
-        healthBadge.textContent = 'NORMAL';
-        healthBadge.className = 'badge badge-green';
-      } else if (state.backupPromoted) {
-        healthEl.textContent = 'DEGRADED';
-        healthBadge.textContent = 'FAILOVER';
-        healthBadge.className = 'badge badge-amber';
-      } else {
-        healthEl.textContent = 'CRITICAL';
-        healthBadge.textContent = 'DOWN';
-        healthBadge.className = 'badge badge-red';
-      }
-
-      // Disable fail button if primary already failed
-      document.getElementById('btn-fail-primary').disabled = !state.primaryActive;
-    }
-
-    function renderStateTable() {
-      const tbody = document.getElementById('state-table-body');
-      const entries = Object.values(state.currentState);
-      if (entries.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:24px;">No updates replicated yet.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = entries.map(u => {
-        const valueBadge = getValueBadge(u.value);
-        return `
-          <tr>
-            <td class="font-mono">${u.updateId}</td>
-            <td><strong>${u.resourceId}</strong></td>
-            <td>${u.updateType}</td>
-            <td>${valueBadge}</td>
-            <td>${u.sourceNode}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function getValueBadge(value) {
-      const colors = {
-        'NEEDS_RESCUE': 'badge-red',
-        'RESCUED': 'badge-green',
-        'MEDICAL_ASSISTANCE': 'badge-amber',
-        'OPEN': 'badge-green',
-        'BLOCKED': 'badge-red',
-        'DELIVERED': 'badge-info'
-      };
-      return `<span class="badge ${colors[value] || 'badge-gray'}">${value}</span>`;
-    }
-
-    function appendTrace(steps) {
-      const container = document.getElementById('trace-container');
-      // Clear placeholder
-      if (container.querySelector('[style*="italic"]')) {
-        container.innerHTML = '';
-      }
-      steps.forEach(s => {
-        const div = document.createElement('div');
-        div.style.cssText = 'padding: 4px 12px; font-family: ui-monospace, monospace; font-size: 0.78rem; line-height: 1.6; border-left: 3px solid transparent;';
-        if (s.includes('FAILED') || s.includes('PRIMARY FAILURE')) {
-          div.style.color = 'var(--color-danger)';
-          div.style.borderLeftColor = 'var(--color-danger)';
-          div.style.fontWeight = '600';
-        } else if (s.includes('PROMOTED')) {
-          div.style.color = 'var(--color-accent)';
-          div.style.borderLeftColor = 'var(--color-accent)';
-          div.style.fontWeight = '600';
-        } else if (s.includes('replicated') || s.includes('processed')) {
-          div.style.color = 'var(--color-success)';
-          div.style.borderLeftColor = 'var(--color-success)';
-        }
-        div.textContent = s;
-        container.appendChild(div);
-      });
-      container.scrollTop = container.scrollHeight;
-    }
-
-    function updateUI(result) {
-      state = result;
-      renderDiagram();
-      renderKpis();
-      renderStateTable();
-      appendTrace(result.steps);
-    }
-
-    // ── API Calls ──
-    async function sendUpdate() {
-      const resourceId = document.getElementById('resource-id').value.trim();
-      if (!resourceId) {
-        toast.error('Validation Error', 'Resource ID is required.');
-        return;
-      }
-      try {
-        const result = await api.post('/api/ft/updates', {
-          resourceId: resourceId,
-          updateType: document.getElementById('update-type').value,
-          value: document.getElementById('update-value').value,
-          sourceNode: document.getElementById('source-node').value
-        });
-        updateUI(result);
-        toast.success('Update Sent', `${resourceId} → replicated successfully.`);
-      } catch (e) {
-        toast.error('Update Failed', e.message);
-      }
-    }
-
-    async function failPrimary() {
-      try {
-        const result = await api.post('/api/ft/primary/fail', {});
-        updateUI(result);
-        toast.warning('Primary Failed', 'Backup has been promoted to primary.');
-      } catch (e) {
-        toast.error('Fail Primary Failed', e.message);
-      }
-    }
-
-    async function resetSystem() {
-      try {
-        const result = await api.post('/api/ft/reset', {});
-        updateUI(result);
-        document.getElementById('trace-container').innerHTML =
-          '<div style="color: #64748b; font-style: italic; padding: 24px; text-align: center;">System reset. Send an update or trigger a failure.</div>';
-        toast.info('System Reset', 'Fault-tolerance subsystem restored to initial state.');
-      } catch (e) {
-        toast.error('Reset Failed', e.message);
-      }
-    }
-
-    async function runFullDemo() {
-      const btn = document.getElementById('btn-run-demo');
-      btn.disabled = true;
-      btn.textContent = 'Running…';
-      document.getElementById('trace-container').innerHTML = '';
-
-      const demoUpdates = [
-        { resourceId: 'House-12',    updateType: 'STATUS', value: 'NEEDS_RESCUE',       sourceNode: 'UAV-01' },
-        { resourceId: 'Hospital-01', updateType: 'STATUS', value: 'MEDICAL_ASSISTANCE', sourceNode: 'UAV-02' },
-        { resourceId: 'Shelter-03',  updateType: 'STATUS', value: 'OPEN',               sourceNode: 'Edge-01' },
-        { resourceId: 'House-15',    updateType: 'STATUS', value: 'RESCUED',            sourceNode: 'UAV-01' }
-      ];
-      const postFailoverUpdates = [
-        { resourceId: 'School-07', updateType: 'STATUS', value: 'NEEDS_RESCUE', sourceNode: 'UAV-03' },
-        { resourceId: 'Bridge-02', updateType: 'STATUS', value: 'BLOCKED',      sourceNode: 'Edge-01' },
-        { resourceId: 'House-20',  updateType: 'STATUS', value: 'RESCUED',      sourceNode: 'UAV-04' }
-      ];
-
-      try {
-        // First reset
-        await api.post('/api/ft/reset', {});
-
-        // Step 2: Normal updates
-        appendTrace(['', '═══ STEP 2: PROCESSING NORMAL SYSTEM UPDATES ═══']);
-        for (const u of demoUpdates) {
-          const result = await api.post('/api/ft/updates', u);
-          updateUI(result);
-          await sleep(600);
-        }
-
-        // Step 4: Fail primary
-        await sleep(800);
-        appendTrace(['', '═══ STEP 4: SIMULATING PRIMARY FAILURE ═══']);
-        const failResult = await api.post('/api/ft/primary/fail', {});
-        updateUI(failResult);
-
-        // Step 6: Updates after failover
-        await sleep(800);
-        appendTrace(['', '═══ STEP 6: SYSTEM CONTINUES AFTER FAILURE ═══']);
-        for (const u of postFailoverUpdates) {
-          const result = await api.post('/api/ft/updates', u);
-          updateUI(result);
-          await sleep(600);
-        }
-
-        // Final state
-        await sleep(400);
-        appendTrace(['', '═══ STEP 7: FAULT TOLERANCE TEST COMPLETED ═══',
-          'Primary failure detected.',
-          'Backup successfully took over.',
-          'Previously replicated updates were preserved.',
-          'New system updates were processed after failover.'
-        ]);
-
-        toast.success('Demo Complete', 'Full Exp 8 scenario has been executed.');
-      } catch (e) {
-        toast.error('Demo Failed', e.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '🚀 Run Full Demo';
-      }
-    }
-
-    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-    // ── Load Initial State ──
-    async function loadState() {
-      try {
-        const result = await api.get('/api/ft/state');
-        state = result;
-        renderDiagram();
-        renderKpis();
-        renderStateTable();
-      } catch (e) {
-        console.warn('Could not load FT state:', e);
-        renderDiagram();
-        renderKpis();
-      }
-    }
-
-    // ── Wire Events ──
-    document.getElementById('update-form').addEventListener('submit', sendUpdate);
-    document.getElementById('btn-fail-primary').addEventListener('click', failPrimary);
-    document.getElementById('btn-reset').addEventListener('click', resetSystem);
-    document.getElementById('btn-run-demo').addEventListener('click', runFullDemo);
-    document.getElementById('btn-clear-trace').addEventListener('click', () => {
-      document.getElementById('trace-container').innerHTML =
-        '<div style="color: #64748b; font-style: italic; padding: 24px; text-align: center;">Trace cleared.</div>';
-    });
-
-    // ── SSE ──
-    events.createLiveLog('module-live-log', { maxEntries: 50 });
-    events.on('ft', 'FT_PRIMARY_FAILED', () => loadState());
-    events.on('ft', 'FT_BACKUP_PROMOTED', () => loadState());
-    events.on('ft', 'FT_REPLICATED', () => loadState());
-
-    // ── Init ──
-    loadState();
-  });
-  </script>
+  <script src="/js/faulttolerance.js"></script>
 </body>
 </html>
