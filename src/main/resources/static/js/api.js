@@ -33,6 +33,8 @@
     '/api/election/bully': '/mock/election_bully.json',
     '/api/election/ring': '/mock/election_bully.json',
     '/api/election/compare': '/mock/election_bully.json',
+    '/api/election/history': '/mock/election_history.json',
+    '/api/election/leader': '/mock/election_bully.json',
     '/api/reconcile': '/mock/reconcile.json',
     '/api/reconcile/latest': '/mock/reconcile.json',
     '/api/ft/state': '/mock/ft_state.json',

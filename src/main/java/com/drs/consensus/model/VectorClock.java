@@ -56,8 +56,10 @@ public class VectorClock {
         allKeys.addAll(a.keySet());
         allKeys.addAll(b.keySet());
         for (String key : allKeys) {
-            int av = a.getOrDefault(key, 0);
-            int bv = b.getOrDefault(key, 0);
+            Integer aVal = a.get(key);
+            Integer bVal = b.get(key);
+            int av = (aVal != null) ? aVal : 0;
+            int bv = (bVal != null) ? bVal : 0;
             if (av > bv) aLessOrEqualB = false;
             if (bv > av) bLessOrEqualA = false;
         }

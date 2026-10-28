@@ -1,0 +1,29 @@
+[
+  {
+    "id": 3,
+    "algorithm": "RING",
+    "leaderId": "Edge-01",
+    "leaderPriority": 3,
+    "totalMessages": 6,
+    "clusterId": "Cluster-A",
+    "timestamp": "2026-10-28T15:30:00Z"
+  },
+  {
+    "id": 2,
+    "algorithm": "BULLY",
+    "leaderId": "Edge-01",
+    "leaderPriority": 3,
+    "totalMessages": 8,
+    "clusterId": "Cluster-A",
+    "timestamp": "2026-10-28T15:29:55Z"
+  },
+  {
+    "id": 1,
+    "algorithm": "BULLY",
+    "leaderId": "UAV-02",
+    "leaderPriority": 2,
+    "totalMessages": 5,
+    "clusterId": "Cluster-B",
+    "timestamp": "2026-10-28T15:25:00Z"
+  }
+]
