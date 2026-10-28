@@ -1,9 +1,11 @@
 package com.drs.consensus.reconcile;
 
 import com.drs.consensus.model.*;
+import com.drs.consensus.repository.UpdateRecordRepository;
 import com.drs.core.event.EventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -33,8 +35,38 @@ public class ReconciliationService {
     /** Thread-safe store of pending updates. */
     private final CopyOnWriteArrayList<UpdateRecord> pendingUpdates = new CopyOnWriteArrayList<>();
 
+    private volatile ReconciliationResult latestResult;
+
+    @Autowired(required = false)
+    private UpdateRecordRepository updateRecordRepository;
+
     public ReconciliationService(EventPublisher eventPublisher) {
         this.eventPublisher = eventPublisher;
+    }
+
+    public void setUpdateRecordRepository(UpdateRecordRepository updateRecordRepository) {
+        this.updateRecordRepository = updateRecordRepository;
+    }
+
+    /**
+     * Reconcile all stored updates.
+     * Exposed for Prasham's ScenarioRunner.
+     */
+    public ReconciliationResult reconcileAll() {
+        if (updateRecordRepository != null && updateRecordRepository.count() > 0) {
+            return reconcile(updateRecordRepository.findAllByOrderByRecordIdAsc());
+        }
+        return reconcile(null);
+    }
+
+    /**
+     * Returns the most recent reconciliation result, or runs one if not yet computed.
+     */
+    public ReconciliationResult getLatest() {
+        if (latestResult == null) {
+            return reconcileAll();
+        }
+        return latestResult;
     }
 
     // ── update management ──
@@ -43,6 +75,14 @@ public class ReconciliationService {
     public void addUpdate(UpdateRecord update) {
         pendingUpdates.add(update);
         log.debug("Added update {}", update.getRecordId());
+    }
+
+    /**
+     * Apply a local partition update directly.
+     * Exposed for Prasham's ScenarioRunner.
+     */
+    public void applyLocalUpdate(UpdateRecord record) {
+        addUpdate(record);
     }
 
     /** Return all pending updates (read-only copy). */
@@ -105,6 +145,7 @@ public class ReconciliationService {
 
         log.info("Reconciliation done: {} updates, {} resolutions, {} conflicts",
                 toReconcile.size(), resolutions.size(), conflictsDetected);
+        this.latestResult = result;
         eventPublisher.publish("consensus", "RECONCILED", result);
 
         return result;

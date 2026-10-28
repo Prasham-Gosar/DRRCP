@@ -14,6 +14,7 @@ public class PrimaryCoordinator {
     private final String nodeId;
     private boolean active;
     private final BackupReplica backup;
+    private final java.util.Map<String, SystemUpdate> primaryUpdates = new java.util.LinkedHashMap<>();
 
     public PrimaryCoordinator(String nodeId, BackupReplica backup) {
         this.nodeId = nodeId;
@@ -41,12 +42,23 @@ public class PrimaryCoordinator {
             steps.add("[" + nodeId + "] Processing system update: " + update);
         }
 
+        primaryUpdates.put(update.getResourceId(), update);
+
         // Replicate the update immediately to the Backup.
         boolean replicated = backup.replicate(update, steps);
         if (replicated && steps != null) {
             steps.add("[" + nodeId + "] Update successfully replicated.");
         }
         return replicated;
+    }
+
+    public java.util.Map<String, SystemUpdate> getState() {
+        return java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(primaryUpdates));
+    }
+
+    public void clear() {
+        primaryUpdates.clear();
+        active = true;
     }
 
     /**

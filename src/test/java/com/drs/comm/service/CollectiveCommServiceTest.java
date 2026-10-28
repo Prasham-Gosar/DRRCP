@@ -1,6 +1,5 @@
-package com.drs.comm;
+package com.drs.comm.service;
 
-import com.drs.comm.service.CollectiveCommService;
 
 import com.drs.comm.model.CollectiveResult;
 import com.drs.comm.model.CommRequest;

@@ -13,8 +13,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Primary-Backup Replication Service — Spring service port of legacy Experiment
- * 8.
+ * Primary-Backup Replication Service — Spring service port of legacy Experiment 8.
  * <p>
  * Holds one {@link PrimaryCoordinator} and one {@link BackupReplica}.
  * Coordinates update processing, synchronous replication, failover promotion,
@@ -42,13 +41,12 @@ public class ReplicationService {
     }
 
     /**
-     * Process an update through the primary, replicating it synchronously to
-     * backup.
+     * Process an update through the primary, replicating it synchronously to backup.
      * If the primary has failed and backup is promoted, the update is processed
      * directly by the promoted backup.
      */
     public FaultToleranceResult processUpdate(String resourceId, String updateType,
-            String value, String sourceNode) {
+                                              String value, String sourceNode) {
         List<String> steps = new ArrayList<>();
         String updateId = "UPDATE-" + updateCounter.incrementAndGet();
         SystemUpdate update = new SystemUpdate(updateId, resourceId, updateType, value, sourceNode);
@@ -72,6 +70,43 @@ public class ReplicationService {
         }
 
         return buildResult(steps);
+    }
+
+    /**
+     * Replicate an external {@link SystemUpdate} synchronously across primary and backup replicas.
+     * Exposed as a clean 1-line hook for CoordinatorService and LoadBalancerService.
+     */
+    public FaultToleranceResult replicate(SystemUpdate update) {
+        if (update == null) {
+            return getState();
+        }
+        List<String> steps = new ArrayList<>();
+        if (!primary.isActive()) {
+            if (backup.isPromoted()) {
+                backup.processNewUpdate(update, steps);
+                log.info("Backup (promoted) replicated external update: {}", update.getUpdateId());
+            } else {
+                steps.add("[" + primary.getNodeId() + "] PRIMARY FAILED. Cannot replicate update.");
+                steps.add("[" + backup.getNodeId() + "] Backup is not Primary yet.");
+            }
+        } else {
+            boolean replicated = primary.processUpdate(update, steps);
+            if (replicated) {
+                log.info("Primary replicated external update: {}", update.getUpdateId());
+                eventPublisher.publish("ft", "FT_REPLICATED", Map.of(
+                        "updateId", update.getUpdateId(),
+                        "resourceId", update.getResourceId(),
+                        "value", update.getValue()));
+            }
+        }
+        return buildResult(steps);
+    }
+
+    /**
+     * Convenience overload for external replication.
+     */
+    public FaultToleranceResult replicate(String resourceId, String updateType, String value, String sourceNode) {
+        return processUpdate(resourceId, updateType, value, sourceNode);
     }
 
     /**
@@ -102,7 +137,7 @@ public class ReplicationService {
         String activeLeader = backup.isPromoted() ? backup.getNodeId() : primary.getNodeId();
         steps.add("[" + activeLeader + "] Current System State");
 
-        Map<String, SystemUpdate> state = backup.getState();
+        Map<String, SystemUpdate> state = backup.isPromoted() ? backup.getState() : primary.getState();
         if (state.isEmpty()) {
             steps.add("No system updates available.");
         } else {
@@ -146,7 +181,9 @@ public class ReplicationService {
                 backup.getNodeId(),
                 primary.isActive(),
                 backup.isPromoted(),
+                primary.getState(),
                 backup.getState(),
+                backup.isPromoted() ? backup.getState() : primary.getState(),
                 steps);
     }
 }

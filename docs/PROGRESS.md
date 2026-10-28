@@ -57,13 +57,28 @@ One section per person per day. Update yours in every PR.
 - Added unit tests: `ElectionControllerTest` (8 tests) and `ReplicationServiceTest` (4 tests) covering replication, failover, promotion, and model operations. All 109 project tests passing.
 
 ### Day 3
--
+- Built `UpdateService` and `UpdateController` (`POST /api/updates`, `GET /api/updates`, `DELETE /api/updates`, `POST /api/updates/seed`, `GET /api/updates/compare`).
+- Vector clock stamping: each update advances the logical clock for the authoring node and saves an `UpdateRecord` JPA entity with `@ElementCollection` vector clock.
+- Enforced intra-cluster causal merge during network partition via `NetworkPartitionStatus` interface and `DefaultNetworkPartitionStatus` stub: nodes only merge clocks from reachable partition components, naturally generating concurrent vectors for cross-partition writes.
+- Implemented `ReconciliationController` (`POST /api/reconcile`, `GET /api/reconcile/latest`) executing `ReconciliationEngine` over stored updates. Exposed `ReconciliationService.reconcileAll()` for scenario orchestration.
+- Created `reconcile.html` and `reconcile.js`: updates table with vector clock badges, interactive causality comparator displaying `BEFORE`, `AFTER`, `CONCURRENT`, and `EQUAL` relations, 'Record Update' form, 'Reconcile Now' button, resolutions table with red badge for safety-first conflicts, survivor list chips, execution step trace, and live SSE event feed.
+- Added comprehensive unit tests in `UpdateServiceTest`, `UpdateControllerTest`, and `ReconciliationControllerTest`. Verified House-12 concurrent conflict (`NEEDS_RESCUE` wins with `needsHumanReview = true`) and survivor CRDT set union.
 
 ### Day 4
--
+- Built `faulttolerance.html` and `faulttolerance.js` with live primary-backup topology diagram, animated standby-to-leader promotion, synchronized state maps for both replicas, and live SSE event stream.
+- Added State Diff Verification view comparing `primaryState` against `backupState` (`SYNCHRONIZED`, `MISSING ON BACKUP`, `POST-FAILOVER WRITE`).
+- Built automated failover demo sequence: sends updates, crashes primary coordinator, animates backup takeover, and proves zero data loss on subsequent writes.
+- Added static root redirects `reconcile.html`, `faulttolerance.html`, and `fault-tolerance.html` pointing to `/pages/`.
+- Exposed 1-line integration hook `ReplicationService.replicate(SystemUpdate)` and `replicate(resourceId, type, val, node)` for Prasham's coordinator node registrations and Parth's task assignments.
+- Built vertical Causal Timeline on `reconcile.html` mapping partition updates in causal order.
+- Created `ElectionService` providing `runBothElections(clusterId)`, implemented `applyLocalUpdate` on `ReconciliationService`, and verified leader alignment with `LeaderProvider`.
+- Added `ConsensusEdgeCaseTest` covering all nodes dead in Bully and Ring, single-node cluster, priority ties, and empty update lists.
 
 ### Day 5
--
+- Hardened endpoints with `ConsensusExceptionHandler` (`@RestControllerAdvice` scoped strictly to `com.drs.consensus` and `com.drs.faulttolerance`) providing clean, uniform JSON error bodies for validation errors, illegal arguments, and missing resources.
+- Verified in-browser navigation and mock mode (`?mock=1`) across all three module pages (`election.html`, `reconcile.html`, `faulttolerance.html`).
+- Authored comprehensive technical documentation in `docs/EXPERIMENTS_4_5_8.md`: aim, short algorithm explanation, message complexities, code locations, step-by-step UI demo procedures, 1-line teammate integration call-sites, and 5 viva questions and answers per experiment (15 total).
+- All 122 tests green (`mvn clean test`). Zero regressions across entire project.
 
 ## Parth (compute, Spark)
 

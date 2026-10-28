@@ -42,6 +42,12 @@ public class RingElectionService {
         steps.add("[Ring] " + initiatorId
                 + " notices the coordinator is unreachable -> starts an election.");
 
+        boolean anyAlive = ring.stream().anyMatch(ElectionNode::isAlive);
+        if (!anyAlive) {
+            steps.add("[Ring] All nodes in ring are dead. No alive node can be elected leader.");
+            return new ElectionResult("RING", "NO_LEADER", -1, 0, steps);
+        }
+
         ElectionNode candidate = ring.get(startIdx);
         int idx = startIdx;
 
