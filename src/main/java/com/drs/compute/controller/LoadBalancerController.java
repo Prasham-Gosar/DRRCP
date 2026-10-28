@@ -95,3 +95,4 @@ public class LoadBalancerController {
         return loadBalancerService.seedSampleTasks();
     }
 }
+

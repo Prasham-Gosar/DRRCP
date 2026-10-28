@@ -133,3 +133,4 @@ class LoadBalancerControllerTest {
         verify(loadBalancerService).seedSampleTasks();
     }
 }
+

@@ -105,3 +105,4 @@ public class TaskController {
         return ResponseEntity.ok(Map.of("message", "All rescue tasks deleted successfully"));
     }
 }
+
