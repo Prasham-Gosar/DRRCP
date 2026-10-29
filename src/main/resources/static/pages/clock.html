@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DRS — Clock Synchronization &amp; Vector Clocks (Exp 3)</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/vendor/chart.umd.min.js"></script>
+  <style>
+    .network-banner {
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      border: 1px solid transparent;
+      transition: all var(--transition-normal);
+    }
+    .banner-normal {
+      background: #ecfdf5;
+      color: #065f46;
+      border-color: #a7f3d0;
+    }
+    .banner-partitioned {
+      background: #fef2f2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
+    .skew-pill {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 0.8rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #f1f5f9;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+  <div id="app-layout">
+    <!-- Sidebar injected by layout.js -->
+
+    <div id="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-container">
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">⏱️ Clock Synchronization &amp; Vector Clocks</h1>
+            <p class="page-description">
+              Exp 3 — Cristian's Algorithm Physical Clock Sync &nbsp;|&nbsp;
+              Vector Clock Telemetry &nbsp;|&nbsp;
+              Network Partition Simulation
+            </p>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <button id="btn-sync-all" class="btn btn-primary">⚡ Sync All Clocks</button>
+            <button id="btn-toggle-partition" class="btn btn-danger">⚡ Simulate Partition</button>
+            <button id="btn-refresh" class="btn btn-outline btn-sm">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <!-- Network Partition Status Banner -->
+        <div id="partition-banner" class="network-banner banner-normal">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span id="banner-icon" style="font-size:1.6rem;">🟢</span>
+            <div>
+              <div id="banner-title" style="font-weight:700; font-size:1.02rem;">Network Connected (Normal Mode)</div>
+              <div id="banner-sub" style="font-size:0.84rem; opacity:0.88;">
+                All clusters can exchange updates and reach the Cluster Coordinator.
+              </div>
+            </div>
+          </div>
+          <span class="badge badge-green" id="banner-badge">COORDINATOR ONLINE</span>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Coordinator Time</span>
+              <div class="kpi-icon-wrap" style="background:#eff6ff; color:#2563eb;">⏰</div>
+            </div>
+            <div class="kpi-value" id="kpi-coord-time" style="font-size:1.45rem;">--:--:--</div>
+            <div class="kpi-meta"><span class="badge badge-info">Master Clock</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Clocks In Sync</span>
+              <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">⏱️</div>
+            </div>
+            <div class="kpi-value" id="kpi-synced-count">0 / 3</div>
+            <div class="kpi-meta"><span id="kpi-synced-meta">Awaiting sync</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Avg Round-Trip Time</span>
+              <div class="kpi-icon-wrap" style="background:#fffbeb; color:#d97706;">📶</div>
+            </div>
+            <div class="kpi-value" id="kpi-avg-rtt">0 ms</div>
+            <div class="kpi-meta"><span>10–60ms simulated network delay</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Network State</span>
+              <div class="kpi-icon-wrap" style="background:#f5f3ff; color:#7c3aed;">🌐</div>
+            </div>
+            <div class="kpi-value" id="kpi-net-status" style="font-size:1.45rem;">NORMAL</div>
+            <div class="kpi-meta"><span class="badge badge-green" id="kpi-net-badge">REACHABLE</span></div>
+          </div>
+        </div>
+
+        <!-- Main Synchronization Table -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Node Clock Telemetry &amp; Vector Clocks</h2>
+              <div class="card-subtitle">
+                Formula: <code>offset = t1 + RTT/2 - t2</code> &nbsp;|&nbsp; Corrected time: <code>t2 + offset</code>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button id="btn-reset-skews" class="btn btn-outline btn-sm" title="Restore default simulated drift (+1500ms, -800ms, +300ms)">
+                Reset Default Skews
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Node ID</th>
+                  <th>Cluster</th>
+                  <th>Injected Drift</th>
+                  <th>RTT</th>
+                  <th>Offset</th>
+                  <th>Raw Node Time</th>
+                  <th>Corrected Time</th>
+                  <th>Vector Clock Snapshot</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="clocks-tbody">
+                <tr><td colspan="10" style="text-align:center; padding:24px; color:#94a3b8;">
+                  Loading clock telemetry...
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Offset & Skew Visualization Chart -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Clock Skew vs Computed Offset (Cristian's Algorithm)</h2>
+              <div class="card-subtitle">Visualizing drift correction and round-trip delays across nodes</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="position:relative; height:240px; width:100%;">
+              <canvas id="offsets-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal Step Trace & Live Log Grid -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Cristian's Algorithm Step Trace</h2>
+                <div class="card-subtitle">Step-by-step trace of \(t_0, t_1, t_2\), RTT and offset calculations</div>
+              </div>
+              <button id="btn-clear-trace" class="btn btn-outline btn-sm">Clear</button>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="terminal-card" id="step-trace" style="min-height:260px;">
+                <div style="color:#64748b;">Click <strong>Sync</strong> or <strong>Sync All Clocks</strong> to execute Cristian's Algorithm.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Live Event Stream</h2>
+                <div class="card-subtitle">SSE events for <code>CLOCK_SYNCED</code> and network partitions</div>
+              </div>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div id="clock-live-log"></div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/events.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/clock.js"></script>
+</body>
+</html>
+

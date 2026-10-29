@@ -334,4 +334,112 @@ All compute DTOs live in `com.drs.compute.model`.
     { "cluster": "ClusterA", "taskType": "Medical", "taskCount": 2, "totalWorkload": 7.0 }
   ]
 }
-```
+```
+
+
+## 10. DTOs & Schemas — core Exp 3 (Clock Sync & Network Partition)
+
+All core Exp 3 DTOs live in `com.drs.core.service` and are served by `ClockController` and `NetworkController`.
+
+### `NodeClockSyncResult` (response from `POST /api/clock/sync/{nodeId}`)
+
+```json
+{
+  "nodeId": "UAV-01",
+  "clusterId": "Cluster-A",
+  "success": true,
+  "injectedSkewMillis": 1500,
+  "t0": 1729877000100,
+  "serverTime": 1729877000125,
+  "t2": 1729877000150,
+  "rttMillis": 50,
+  "offsetMillis": -1475,
+  "rawLocalTime": 1729877001600,
+  "correctedTime": 1729877000125,
+  "lastSyncTime": "2026-10-29T10:30:00Z",
+  "errorMessage": null,
+  "steps": [
+    "[Cristian] Initiating clock sync for node UAV-01 (Cluster-A)",
+    "[Cristian] t0 (local node time before request) = 1729877000100 ms (skew = 1500 ms)",
+    "[Cristian] t1 (coordinator server time) = 1729877000125 ms",
+    "[Cristian] t2 (local node time on receipt) = 1729877000150 ms",
+    "[Cristian] RTT = (t2 - t0) = 50 ms (estimated one-way delay ~ 25 ms)",
+    "[Cristian] Clock Offset = t1 + RTT/2 - t2 = -1475 ms",
+    "[Cristian] Corrected Clock Time = 1729877000125 ms"
+  ]
+}
+```
+
+### `NetworkStatus` (response from `POST /api/network/partition`, `/heal`, `GET /api/network/status`)
+
+```json
+{
+  "partitioned": true,
+  "clusters": ["Cluster-A", "Cluster-B"],
+  "nodeClusters": {
+    "Edge-01": "Cluster-B",
+    "UAV-01": "Cluster-A",
+    "UAV-02": "Cluster-A"
+  },
+  "coordinatorReachable": false,
+  "message": "Network partitioned: Cluster-A and Cluster-B are isolated. Coordinator unreachable.",
+  "steps": [
+    "[NETWORK] Partition triggered: wireless link between clusters severed",
+    "[NETWORK] Cluster-A (UAV nodes) and Cluster-B (Edge nodes) are isolated",
+    "[NETWORK] Coordinator is UNREACHABLE for all edge nodes",
+    "[NETWORK] Local leader election (Exp 4) and partitioned logging (Exp 3/5) required"
+  ]
+}
+```
+
+---
+
+## 11. Day 4 ScenarioRunner Inter-Service Contracts (Agreed Specification)
+
+To orchestrate the full disaster story end-to-end on Day 4, each package agrees to expose the following service methods. Prasham's `ScenarioRunner` (`com.drs.core.scenario`) will invoke them in sequence:
+
+### 1. Consensus & Fault Tolerance Contracts (Grasit — `com.drs.consensus`, `com.drs.faulttolerance`)
+
+* **`ElectionService.runBothElections(String clusterId)`**
+  * *Signature:* `ElectionComparisonResult runBothElections(String clusterId)`
+  * *Purpose:* When network partitions in Phase 2, runs both Bully and Ring algorithms for the given cluster and returns leader + message counts for side-by-side UI comparison.
+* **`LeaderProvider.currentLeader(String clusterId)`**
+  * *Signature:* `String currentLeader(String clusterId)`
+  * *Purpose:* Returns the active elected leader nodeId for a cluster (e.g. `UAV-02` for Cluster-A, `Edge-01` for Cluster-B).
+* **`UpdateService.applyLocalUpdate(String resourceKey, String resourceType, String value, String description, String clusterId, String nodeId, String sendTo)`**
+  * *Signature:* `UpdateRecord applyLocalUpdate(String resourceKey, String resourceType, String value, String description, String clusterId, String nodeId, String sendTo)`
+  * *Purpose:* Ticks the node's vector clock, appends an `UpdateRecord` tagged with the new clock snapshot to the pending partition log, and forwards it across the local cluster bus if `sendTo != null`.
+* **`ReconciliationService.reconcileAll()`**
+  * *Signature:* `ReconciliationResult reconcileAll()`
+  * *Purpose:* When the partition heals in Phase 3, reconciles all updates across clusters using safety-first conflict resolution (`NEEDS_RESCUE` beats `RESCUED`) and CRDT set union for survivors.
+* **`FaultToleranceService.simulatePrimaryFailure()`**
+  * *Signature:* `FaultToleranceResult simulatePrimaryFailure()`
+  * *Purpose:* Triggers Exp 8 coordinator failover to promote the backup replica to primary.
+
+### 2. Compute Contracts (Parth — `com.drs.compute`)
+
+* **`LoadBalancerService.balanceAll()`**
+  * *Signature:* `List<AssignmentResult> balanceAll()`
+  * *Purpose:* Assigns pending rescue tasks to available nodes based on effective capacity (`battery × signal × baseCapacity`).
+* **`SparkAnalyticsService.runTaskAnalytics()`**
+  * *Signature:* `AnalyticsResult runTaskAnalytics()`
+  * *Purpose:* Executes the Exp 7 MapReduce / Spark subprocess on rescue task workload data.
+
+### 3. Collective Communication & Matrix Contracts (Vedant — `com.drs.comm`)
+
+* **`CommunicatorService.runCollectiveAlert(List<Integer> alertData)`**
+  * *Signature:* `CollectiveCommResult runCollectiveAlert(List<Integer> alertData)`
+  * *Purpose:* Broadcasts emergency alerts to all ranks (Bcast), scatters rescue supplies (Scatter), and gathers team reports (Gather).
+* **`MatrixService.runBenchmark(int matrixSize)`**
+  * *Signature:* `MatrixBenchmarkResult runBenchmark(int matrixSize)`
+  * *Purpose:* Executes parallel block matrix multiplication benchmark across available worker threads.
+
+### 4. Story Execution Phases (Day 4 Scenario Pipeline)
+
+```mermaid
+flowchart TD
+    P1["Phase 1: Registration (Exp 1), Heartbeats (Exp 2), Clock Sync (Exp 3)"] --> P2["Phase 2: Network Partition, Leader Election (Exp 4), Vector Clock Updates (Exp 3/5)"]
+    P2 --> P3["Phase 3: Network Heal, Resumed Heartbeats (Exp 2), CRDT Reconciliation (Exp 5)"]
+    P3 --> P4["Phase 4: Load Balancing (Exp 6), Primary-Backup Failover (Exp 8)"]
+    P4 --> P5["Phase 5: Spark Analytics (Exp 7), Collective Comms (Exp 9), Parallel Matrix (Exp 10)"]
+```
