@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="radarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Outer Dark Shield -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#shieldGrad)" stroke="#334155" stroke-width="2" />
+
+  <!-- Radar Pulse Rings -->
+  <circle cx="32" cy="32" r="22" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-opacity="0.35" stroke-dasharray="2 3" />
+  <circle cx="32" cy="32" r="15" fill="none" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.5" />
+
+  <!-- Central Emergency Medical / Rescue Cross -->
+  <path d="M 28 18 H 36 V 28 H 46 V 36 H 36 V 46 H 28 V 36 H 18 V 28 H 28 Z" 
+        fill="#ffffff" 
+        filter="url(#glow)" />
+
+  <!-- Dynamic Center Dot (UAV / Node Coordinator) -->
+  <circle cx="32" cy="32" r="3.5" fill="#ef4444" />
+</svg>

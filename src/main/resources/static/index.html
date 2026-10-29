@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DRS Web Edition — Mission Command Dashboard</title>
   
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="/css/app.css">
   <!-- Vendored Chart.js (No external CDN dependency) -->
   <script src="/js/vendor/chart.umd.min.js"></script>
@@ -13,10 +14,10 @@
   <div id="app-layout">
     <!-- Sidebar dynamically injected by layout.js -->
 
-    <div id="main-wrapper">
+    <div id="main-wrapper" tabindex="-1">
       <div id="header-mount"></div>
 
-      <main class="content-container">
+      <main class="content-container" id="main-content" aria-label="Mission Command Dashboard">
         
         <!-- Welcome Hero Banner -->
         <div class="card mb-6" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; border: none; box-shadow: var(--shadow-md);">

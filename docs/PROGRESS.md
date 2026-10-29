@@ -327,3 +327,51 @@ One section per person per day. Update yours in every PR.
 
 ### Day 5
 -
+
+
+### Day 5 — UI QA, A11y Fixes, Documentation & Demo Rehearsal
+
+**Branch:** `feature/vedant-ui-qa`
+
+**UI Quality Assurance (Chrome + Edge, Laptop 1440px + Tablet 768px):**
+- Clicked through all 13 pages; identified and fixed 7 layout/console issues.
+- Tablet viewport (768–960px): sidebar overlay backdrop, `comm-canvas` horizontal scroll, `network-banner` vertical stack all verified.
+- Confirmed `?mock=1` offline mode on all 10 experiment pages without a running server.
+- Resolved skip-link focus bug: `#main-wrapper` lacked `tabindex="-1"`; moved href to `#main-content` (proper `<main id="main-content">`).
+
+**A11Y Fixes (`app.css` + HTML pages):**
+- `.badge-gray` text: `#475569` → `#1e293b` (8.9:1 contrast — WCAG AA).
+- `.text-muted` / `.placeholder-muted`: `#94a3b8` → `#475569` (4.6:1 — WCAG AA).
+- `.badge-orange` dark text: enforced `#7c2d12` for 4.5:1.
+- `::placeholder`: explicit `#64748b` (4.5:1).
+- Added `aria-label` on `<main>` in `index.html`, `comm.html`, `matrix.html`.
+- Added `aria-label` to `#btn-run-all` and `#input-root`; fixed `max` from hardcoded `3` → `15`.
+- Wrapped per-rank timeline table in `.table-scroll-wrapper` with accessible `aria-label`.
+
+**CSS Fixes (Day 5 block appended to `app.css`):**
+- `.table th`: sticky header, full-contrast `color: #1e293b`, `z-index: 2`.
+- `.btn:disabled`: 45% opacity + `cursor: not-allowed`.
+- `.step-row` layout alignment fix; `.text-ellipsis` Safari `display: block` fix.
+- `.dot-active` pulsating `@keyframes pulse-dot` animation.
+- `@media print` styles (hide sidebar/header for clean screenshots).
+- `.brand-version-pill`: `v1.0` pill in sidebar footer.
+- Tablet 960px: 3-col → 2-col; mobile 640px: rank-box min-width 200px.
+
+**Branding:** Sidebar footer shows "Disaster Relief & Rescue Platform · v1.0 · DC Team 4 · Spring Boot 3.3 · SSE".
+
+**Documentation (`docs/EXPERIMENTS_9_10.md` — complete overwrite):**
+- Aim & System Model with ASCII topology diagram for both experiments.
+- Algorithm section with LaTeX mathematical formulations (Bcast tree model, scatter bounds, self-check formula, Amdahl's Law, row decomposition index math).
+- Code Map tables (Component → Path → Responsibility).
+- Step-by-step UI Demo Walkthrough (6 steps Exp 9, 5 steps Exp 10) with exact button names and expected metric values.
+- 5 Viva Q&As per experiment (10 total) with full technical answers.
+- REST API Quick Reference with JSON response shape examples for every endpoint.
+- Building & Verification Instructions: `mvn test`, `curl` examples, mock mode, screenshot directory structure.
+
+**Git commits (6 commits on `feature/vedant-ui-qa`):**
+1. `style(css): a11y Day 5 — contrast fixes, focus rings, tablet layout, print styles`
+2. `fix(comm): aria-labels, main id, tabindex, table scroll wrapper`
+3. `fix(matrix): aria-label main, tabindex on main-wrapper`
+4. `fix(index): aria-label main, tabindex on main-wrapper`
+5. `feat(layout): v1.0 sidebar branding pill; skip-link targets #main-content`
+6. `docs: complete EXPERIMENTS_9_10.md — aim, math, code map, demo, 10 viva Q&As`
