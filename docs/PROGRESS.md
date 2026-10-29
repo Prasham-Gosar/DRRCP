@@ -1,4 +1,4 @@
-﻿# Progress Log
+# Progress Log
 
 One section per person per day. Update yours in every PR.
 
@@ -246,8 +246,40 @@ One section per person per day. Update yours in every PR.
 - Handover / Alert for Prasham:
   - Commit `a1c156b` merged `NodeRegistrationServiceTest.java` into `main` without the corresponding implementation classes (`NodeEntity`, `NodeEntityRepository`, `SilentNodeMonitor`, `NodeRegistrationService`). Please commit the missing classes to restore green `mvn test-compile` on `main`.
 
-### Day 3
--
+### Day 3 — Exp 10 Live: Parallel Matrix Multiplication & HPC Dashboard
+- Backend implementation:
+  - Ported legacy Experiment 10 into `com.drs.comm.service.MatrixService` with sequential multiplication baseline and parallel row decomposition (scatter/gather pattern) across configurable worker threads.
+  - Implemented exact element-by-element verification comparing parallel matrix product with sequential baseline (`correct: true`).
+  - Added multi-threaded scalability sweep (`runSweep`) benchmark testing thread counts across powers of two (1, 2, 4, 8...) to measure empirical speedup and efficiency curves.
+  - Disaster Context: Formulated as a distributed Zone-Risk Factor tensor (Matrix A) multiplied by Emergency Resource Demand (Matrix B) to compute sector priority scores.
+- REST Controller (`MatrixController` at `/api/matrix`):
+  - `POST /api/matrix/run`: benchmarks sequential vs parallel execution for requested `{ n, threads }`.
+  - `POST /api/matrix/sweep`: runs multi-threaded scaling sweep for `{ n, maxThreads }`.
+  - `GET /api/matrix/status`: exposes experiment metadata and dimension constraints.
+  - Strict input validation: enforces matrix dimension $2 \le n \le 800$ and $1 \le \text{threads} \le 32$, returning HTTP 400 Bad Request with structured error payloads.
+  - Live SSE Events: Publishes `comm` event `MATRIX_DONE` containing execution times, speedup, and verification status via `EventPublisher`.
+- Interactive Frontend (`static/pages/matrix.html`, `static/matrix.html`, and `static/js/matrix.js`):
+  - Dimension slider (50 to 800) with quick presets (100, 300, 400, 600, 800) and thread selectors.
+  - Telemetry KPI cards for Sequential Latency, Parallel Latency, Speedup Factor, and Parallel Efficiency %.
+  - Prominent verification badge (`🛡️ 100% MATCH - PASSED` in green glow).
+  - Interactive 4x4 risk priority sample matrix with dynamic heat-map coloration.
+  - Chart.js visualizations:
+    1. Line Chart: Empirical speedup vs theoretical linear speedup across thread counts.
+    2. Bar Chart: Execution latency comparison between sequential single-threaded and parallel multi-threaded runs.
+  - Chronological monospace step trace with barrier synchronization logging.
+  - Integrated real-time SSE live-log widget filtered for module `comm`.
+  - Offline mock mode support (`?mock=1`) with fixture `static/mock/matrix_result.json`.
+- Shell fixes:
+  - Added `/matrix.html` and `/pages/matrix.html` aliases to `NAV_ITEMS` in `static/js/layout.js`.
+- Unit & Integration Test Suite:
+  - Built `MatrixServiceTest` (correctness against sequential baseline, non-divisible thread counts with remainder rows, multi-threaded sweep, validation bounds, event publishing).
+  - Built `MatrixControllerTest` (MockMvc tests for `/run`, `/sweep`, `/status`, and 400 Bad Request on $n > 800$ or $n < 2$).
+- Peer Review of Grasit's PR #11 (Consensus & Fault Tolerance):
+  - Reviewed `ReconciliationService.java`, `UpdateService.java`, `UpdateController.java`, `ReconciliationController.java`, `ReplicationService.java`, `reconcile.html`, and `faulttolerance.html`.
+  - Vector clock causality checks, safety-first status precedence, and CRDT set union logic accurately preserve legacy specifications.
+  - Primary-backup replication failover and backup auto-promotion mechanisms are well-structured with clear step traces and SSE event dispatch. Approved!
+- Handover / Blocker Alert for Prasham:
+  - Commit `c423d0a` merged into `main` contains duplicated/merge-conflict lines in `NodeEntity.java`, `SilentNodeMonitor.java`, `NodeRegistrationService.java`, and `NodeEntityRepository.java`. Please clean up the duplicate blocks to restore clean compilation across the whole repository.
 
 ### Day 4
 -
