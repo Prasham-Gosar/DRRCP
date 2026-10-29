@@ -148,3 +148,4 @@ class ClusterTaskServiceTest {
         assertEquals("Edge-01", leaders.get("Cluster-B"));
     }
 }
+
