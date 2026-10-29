@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DRS — Node Coordinator (Exp 1-2)</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+
+<body>
+  <div id="app-layout">
+    <div id="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-container">
+
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">📡 Node Coordinator</h1>
+            <p class="page-description">
+              Exp 1 — RMI Registration &amp; Connectivity Scoring &nbsp;|&nbsp;
+              Exp 2 — Worker Thread Pool Heartbeats &amp; Silent-Node Detection
+            </p>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="btn-start" class="btn btn-primary">▶️ Start Simulator</button>
+            <button id="btn-stop" class="btn btn-danger" disabled>⏹ Stop Simulator</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Nodes</span>
+              <div class="kpi-icon-wrap" style="background:#eff6ff; color:#2563eb;">📡</div>
+            </div>
+            <div class="kpi-value" id="kpi-total">0</div>
+            <div class="kpi-meta"><span id="kpi-total-meta">Waiting for data…</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Alive</span>
+              <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">💚</div>
+            </div>
+            <div class="kpi-value" id="kpi-alive">0</div>
+            <div class="kpi-meta"><span class="badge badge-green">HEALTHY</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Silent</span>
+              <div class="kpi-icon-wrap" style="background:#fef2f2; color:#ef4444;">🔴</div>
+            </div>
+            <div class="kpi-value" id="kpi-silent">0</div>
+            <div class="kpi-meta"><span class="badge badge-red" id="kpi-silent-badge">OK</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Thread Pool</span>
+              <div class="kpi-icon-wrap" style="background:#f5f3ff; color:#7c3aed;">🧵</div>
+            </div>
+            <div class="kpi-value" style="font-size:1.5rem;">4 Threads</div>
+            <div class="kpi-meta"><span class="badge badge-info">heartbeat-pool-1…4</span></div>
+          </div>
+        </div>
+
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Registered Nodes</h2>
+              <div class="card-subtitle">Live table updated by SSE — click Silence to demo silent-node detection</div>
+            </div>
+            <button id="btn-refresh" class="btn btn-outline btn-sm">🔄 Refresh</button>
+          </div>
+          <div class="table-container">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Node ID</th>
+                  <th>Type</th>
+                  <th>Cluster</th>
+                  <th>Battery</th>
+                  <th>Signal</th>
+                  <th>Score</th>
+                  <th>State</th>
+                  <th>Status</th>
+                  <th>Last Heartbeat</th>
+                  <th>Pool Thread</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="nodes-tbody">
+                <tr>
+                  <td colspan="11" style="text-align:center; padding:24px; color:#94a3b8;">
+                    No nodes registered. Click <strong>Start Simulator</strong> to begin the demo.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Algorithm Step Trace</h2>
+                <div class="card-subtitle">Shows step-by-step execution from the last API call</div>
+              </div>
+              <button id="btn-clear-trace" class="btn btn-outline btn-sm">Clear</button>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="terminal-card" id="step-trace" style="min-height:220px;">
+                <div style="color:#64748b;">Waiting for actions…</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Live Event Stream</h2>
+                <div class="card-subtitle">SSE events from module "core"</div>
+              </div>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div id="nodes-live-log"></div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/events.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/nodes.js"></script>
+</body>
+
+</html>
