@@ -1,23 +1,35 @@
 package com.drs.comm.model;
 
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Result object returned by collective communication services and REST endpoints.
+ * Includes per-rank execution timeline, scattered and gathered arrays, self-check status,
+ * and detailed diagnostic steps.
  */
 public class CollectiveResult {
 
     private String operation;
+
     private int numProcesses;
     private int chunkSize;
     private int rootRank;
+    private String alertText;
     private List<String> steps = new ArrayList<>();
     private List<RankExecutionRecord> rankResults = new ArrayList<>();
+    private List<RankTimelineEntry> timeline = new ArrayList<>();
+    private List<String> scattered = new ArrayList<>();
+    private List<String> gathered = new ArrayList<>();
+
+    // Numeric buffers for backwards compatibility
     private int[] alertData;
     private int[] scatterData;
     private int[] gatheredData;
-    private boolean verified;
+
+    private boolean selfCheckPassed;
+
     private long durationMs;
     private String status = "SUCCESS";
     private String errorMessage;
@@ -38,6 +50,14 @@ public class CollectiveResult {
 
     public void setOperation(String operation) {
         this.operation = operation;
+    }
+
+    public int getProcesses() {
+        return numProcesses;
+    }
+
+    public void setProcesses(int processes) {
+        this.numProcesses = processes;
     }
 
     public int getNumProcesses() {
@@ -64,6 +84,14 @@ public class CollectiveResult {
         this.rootRank = rootRank;
     }
 
+    public String getAlertText() {
+        return alertText;
+    }
+
+    public void setAlertText(String alertText) {
+        this.alertText = alertText;
+    }
+
     public List<String> getSteps() {
         return steps;
     }
@@ -82,6 +110,39 @@ public class CollectiveResult {
 
     public void setRankResults(List<RankExecutionRecord> rankResults) {
         this.rankResults = rankResults;
+    }
+
+    public List<RankTimelineEntry> getTimeline() {
+        return timeline;
+    }
+
+    public void setTimeline(List<RankTimelineEntry> timeline) {
+        this.timeline = timeline;
+    }
+
+    public void addTimelineEntry(int rank, String action, Object data, int order) {
+        this.timeline.add(new RankTimelineEntry(rank, action, data, order));
+    }
+
+    // Alias for getTimeline
+    public List<RankTimelineEntry> getPerRankTimeline() {
+        return timeline;
+    }
+
+    public List<String> getScattered() {
+        return scattered;
+    }
+
+    public void setScattered(List<String> scattered) {
+        this.scattered = scattered;
+    }
+
+    public List<String> getGathered() {
+        return gathered;
+    }
+
+    public void setGathered(List<String> gathered) {
+        this.gathered = gathered;
     }
 
     public int[] getAlertData() {
@@ -108,12 +169,20 @@ public class CollectiveResult {
         this.gatheredData = gatheredData;
     }
 
+    public boolean isSelfCheckPassed() {
+        return selfCheckPassed;
+    }
+
+    public void setSelfCheckPassed(boolean selfCheckPassed) {
+        this.selfCheckPassed = selfCheckPassed;
+    }
+
     public boolean isVerified() {
-        return verified;
+        return selfCheckPassed;
     }
 
     public void setVerified(boolean verified) {
-        this.verified = verified;
+        this.selfCheckPassed = verified;
     }
 
     public long getDurationMs() {

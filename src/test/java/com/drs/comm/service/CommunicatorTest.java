@@ -104,7 +104,6 @@ class CommunicatorTest {
     @DisplayName("MPI_Gather collects local chunks in strict rank order on root")
     void gatherAcrossRanks() throws Exception {
         int size = 3;
-        int chunkSize = 2;
         int root = 0;
         Communicator comm = new Communicator(size);
         int[][] gatheredRef = new int[size][];

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reconciliation & CRDT (Exp 5) — DRS Web Edition</title>
+  <meta name="description" content="Vector clock causality tracking and CRDT reconciliation for partitioned disaster relief clusters.">
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    /* Scoped styles for Reconciliation Dashboard */
+    .vc-badge {
+      font-family: var(--font-mono, monospace);
+      font-size: 0.76rem;
+      background: #f1f5f9;
+      border: 1px solid var(--border-light, #e2e8f0);
+      border-radius: 6px;
+      padding: 3px 8px;
+      display: inline-block;
+      color: #334155;
+    }
+    .vc-badge span.tick {
+      font-weight: 700;
+      color: var(--color-primary, #2563eb);
+    }
+    .chip-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .chip-item {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      padding: 2px 10px;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .badge-review {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.74rem;
+    }
+    .badge-auto {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.74rem;
+    }
+    .timeline {
+      position: relative;
+      padding-left: 24px;
+      margin-top: 12px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 7px;
+      width: 2px;
+      background: #cbd5e1;
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .timeline-dot {
+      position: absolute;
+      left: -24px;
+      top: 4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--color-primary, #2563eb);
+      border: 2px solid white;
+      box-shadow: 0 0 0 2px #bfdbfe;
+    }
+    .timeline-dot.concurrent {
+      background: #f59e0b;
+      box-shadow: 0 0 0 2px #fde68a;
+    }
+    .timeline-content {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+    }
+    .relation-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 12px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .relation-badge {
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 4px 12px;
+      border-radius: 6px;
+    }
+    .relation-CONCURRENT { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .relation-BEFORE { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+    .relation-AFTER { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+    .relation-EQUAL { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+  </style>
+</head>
+<body>
+  <div id="app-layout">
+    <!-- Sidebar injected by layout.js -->
+    
+    <div id="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Reconciliation & CRDT Engine</h1>
+            <p class="page-description">
+              Experiment 5: Vector clocks track causality across isolated clusters during communication partition.
+              Safety-first rules (<code>NEEDS_RESCUE &gt; UNKNOWN &gt; RESCUED</code>) and CRDT Set Unions resolve concurrent updates upon network healing.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="btn-seed" class="btn btn-outline">🌱 Load Partition Scenario</button>
+            <button id="btn-reconcile" class="btn btn-primary">🔄 Reconcile Now</button>
+            <button id="btn-reset-updates" class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;">🗑️ Reset All</button>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Partition Updates</span>
+              <div class="kpi-icon-wrap" style="background:#eff6ff; color:#2563eb;">📝</div>
+            </div>
+            <div class="kpi-value" id="kpi-total-updates">0</div>
+            <div class="kpi-meta">
+              <span>Recorded while partitioned</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Distinct Resources</span>
+              <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">📦</div>
+            </div>
+            <div class="kpi-value" id="kpi-distinct-resources">0</div>
+            <div class="kpi-meta">
+              <span>Tracked across clusters</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Concurrent Conflicts</span>
+              <div class="kpi-icon-wrap" style="background:#fffbeb; color:#d97706;">⚡</div>
+            </div>
+            <div class="kpi-value" id="kpi-conflicts">0</div>
+            <div class="kpi-meta">
+              <span id="kpi-conflicts-sub">No conflicts yet</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Human Review Flags</span>
+              <div class="kpi-icon-wrap" style="background:#fef2f2; color:#ef4444;">🚨</div>
+            </div>
+            <div class="kpi-value" id="kpi-review">0</div>
+            <div class="kpi-meta">
+              <span>Safety override required</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-Column Controls & Log -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          
+          <!-- Column 1: Add Update & Clock Comparator -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <!-- Submit Update Form -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Record Partition Update</h2>
+                  <div class="card-subtitle">Simulate an update generated on an isolated node</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <form id="form-add-update" onsubmit="return false;">
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="form-group">
+                      <label class="form-label" for="input-resource-key">Resource Key</label>
+                      <input type="text" id="input-resource-key" class="form-input" placeholder="e.g. House-12" value="House-12" required>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" for="select-resource-type">Resource Type</label>
+                      <select id="select-resource-type" class="form-input">
+                        <option value="STATUS">STATUS (Safety Priority)</option>
+                        <option value="SET_ADD">SET_ADD (CRDT Set Union)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="input-value">Value / Payload</label>
+                    <input type="text" id="input-value" class="form-input" placeholder="e.g. NEEDS_RESCUE or Survivor Name" value="NEEDS_RESCUE" required>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="form-group">
+                      <label class="form-label" for="select-cluster">Cluster ID</label>
+                      <select id="select-cluster" class="form-input">
+                        <option value="Cluster-A">Cluster-A (North Sector)</option>
+                        <option value="Cluster-B">Cluster-B (South Sector)</option>
+                        <option value="Cluster-C">Cluster-C (Base HQ)</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" for="select-node">Authoring Node</label>
+                      <select id="select-node" class="form-input">
+                        <option value="UAV-01">UAV-01 (Drone Alpha)</option>
+                        <option value="UAV-02">UAV-02 (Drone Bravo)</option>
+                        <option value="Edge-01">Edge-01 (Relay Station)</option>
+                        <option value="Edge-02">Edge-02 (Field Sensor)</option>
+                        <option value="Base-01">Base-01 (Coordinator)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="input-description">Observation Note / Description</label>
+                    <input type="text" id="input-description" class="form-input" placeholder="e.g. Visual verification via infrared" value="Thermal imaging confirmed active signals">
+                  </div>
+
+                  <button type="submit" id="btn-submit-update" class="btn btn-primary" style="width: 100%;">
+                    📝 Stamp Vector Clock &amp; Store Update
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Vector Clock Causality Comparator -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Vector Clock Causality Comparator</h2>
+                  <div class="card-subtitle">Evaluate causal dependency (A &rarr; B, B &rarr; A, or A || B)</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="form-group">
+                    <label class="form-label" for="cmp-update-1">Update 1</label>
+                    <select id="cmp-update-1" class="form-input"></select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="cmp-update-2">Update 2</label>
+                    <select id="cmp-update-2" class="form-input"></select>
+                  </div>
+                </div>
+
+                <button type="button" id="btn-compare" class="btn btn-outline" style="width: 100%;">
+                  ⚖️ Compare Causality
+                </button>
+
+                <div id="compare-result" style="display: none;" class="relation-banner">
+                  <div>
+                    <div style="font-weight: 600; font-size: 0.9rem;" id="cmp-summary">--</div>
+                    <div style="font-size: 0.78rem; color: #64748b; margin-top: 2px;" id="cmp-details">--</div>
+                  </div>
+                  <div id="cmp-badge" class="relation-badge">--</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Column 2: Updates Log & Causal Timeline -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <!-- Stored Updates Table -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Stored Partition Updates</h2>
+                  <div class="card-subtitle">Local updates accumulated while network links were severed</div>
+                </div>
+              </div>
+              <div class="card-body" style="padding: 0; max-height: 280px; overflow-y: auto;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="text-align: left; font-size: 0.78rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                      <th style="padding: 8px 12px;">ID</th>
+                      <th style="padding: 8px 12px;">Resource</th>
+                      <th style="padding: 8px 12px;">Value</th>
+                      <th style="padding: 8px 12px;">Cluster / Node</th>
+                      <th style="padding: 8px 12px;">Vector Clock</th>
+                    </tr>
+                  </thead>
+                  <tbody id="updates-table-body">
+                    <tr>
+                      <td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8; font-style: italic;">
+                        No updates recorded. Click "Load Partition Scenario" or submit one.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Causal Timeline -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Causal Timeline</h2>
+                  <div class="card-subtitle">Sequence of partition events mapped by causal order</div>
+                </div>
+              </div>
+              <div class="card-body" style="max-height: 240px; overflow-y: auto;">
+                <div id="causal-timeline" class="timeline">
+                  <div style="color: #94a3b8; font-style: italic; font-size: 0.85rem;">Timeline empty.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Reconciliation Resolutions Section -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Reconciliation Resolutions</h2>
+              <div class="card-subtitle">State convergence computed via CRDT union and safety-first policies</div>
+            </div>
+            <button id="btn-reconcile-inner" class="btn btn-primary btn-sm">🔄 Re-run Engine</button>
+          </div>
+          <div class="card-body" style="padding: 0; overflow-x: auto;">
+            <table class="data-table" style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="text-align: left; font-size: 0.78rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                  <th style="padding: 10px 14px;">Resource</th>
+                  <th style="padding: 10px 14px;">Type</th>
+                  <th style="padding: 10px 14px;">Reconciled Value</th>
+                  <th style="padding: 10px 14px;">Method</th>
+                  <th style="padding: 10px 14px;">Review Status</th>
+                  <th style="padding: 10px 14px;">Resolution Explanation</th>
+                </tr>
+              </thead>
+              <tbody id="resolutions-table-body">
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 28px; color: #94a3b8; font-style: italic;">
+                    Click "Reconcile Now" above to resolve all pending partition updates.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Bottom Grid: Algorithm Step Trace & Live SSE Feed -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <!-- Step Trace -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Engine Execution Trace</h2>
+                <div class="card-subtitle">Step-by-step trace of causal frontier and policy decisions</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="engine-trace" style="font-family: var(--font-mono, monospace); font-size: 0.82rem; background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 14px; max-height: 220px; overflow-y: auto;">
+                <div style="color: #64748b; font-style: italic;">Engine trace will appear here after reconciliation.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live SSE Stream -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Live Event Stream</h2>
+                <div class="card-subtitle">Real-time SSE updates from /api/events (consensus channel)</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="reconcile-live-log" style="max-height: 220px; overflow-y: auto;"></div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Shared scripts -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/events.js"></script>
+  <script src="/js/reconcile.js"></script>
+</body>
+</html>
+

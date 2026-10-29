@@ -29,6 +29,19 @@ public class VectorClockRegistry {
         }
     }
 
+    /** Ensure clock exists for the given node, registering default known nodes if missing. */
+    public void ensureRegistered(String nodeId, List<String> defaultKnownNodes) {
+        clocks.computeIfAbsent(nodeId, id -> {
+            List<String> nodes = (defaultKnownNodes != null && !defaultKnownNodes.isEmpty())
+                    ? defaultKnownNodes : List.of("UAV-01", "UAV-02", "Edge-01", "Edge-02", "Base-01");
+            if (!nodes.contains(id)) {
+                nodes = new java.util.ArrayList<>(nodes);
+                nodes.add(id);
+            }
+            return new VectorClock(nodes);
+        });
+    }
+
     /**
      * Tick the vector clock for the given node.
      *

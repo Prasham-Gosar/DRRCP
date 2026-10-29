@@ -10,3 +10,6 @@ public interface NodeEntityRepository extends JpaRepository<NodeEntity, String> 
     List<NodeEntity> findByStatus(String status);
     List<NodeEntity> findByClusterId(String clusterId);
 }
+    List<NodeEntity> findByClusterId(String clusterId);
+}
+

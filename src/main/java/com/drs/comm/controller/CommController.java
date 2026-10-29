@@ -2,7 +2,8 @@ package com.drs.comm.controller;
 
 import com.drs.comm.model.CollectiveResult;
 import com.drs.comm.model.CommRequest;
-import com.drs.comm.service.CollectiveCommService;
+import com.drs.comm.service.CommService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,14 +11,15 @@ import java.util.Map;
 
 /**
  * REST controller for collective communication (Experiment 9).
+ * Endpoints provide MPI collective communication simulation with disaster relief context.
  */
 @RestController
 @RequestMapping("/api/comm")
-public class CollectiveCommController {
+public class CommController {
 
-    private final CollectiveCommService commService;
+    private final CommService commService;
 
-    public CollectiveCommController(CollectiveCommService commService) {
+    public CommController(CommService commService) {
         this.commService = commService;
     }
 
@@ -43,7 +45,7 @@ public class CollectiveCommController {
     }
 
     /**
-     * Executes MPI_Scatter: Root splits supply packages evenly across ranks.
+     * Executes MPI_Scatter: Root splits supply packages / zone allocations evenly across ranks.
      */
     @PostMapping("/scatter")
     public ResponseEntity<CollectiveResult> scatter(@RequestBody(required = false) CommRequest request) {
@@ -53,7 +55,7 @@ public class CollectiveCommController {
     }
 
     /**
-     * Executes MPI_Gather: Collects all delivery reports from ranks in rank order.
+     * Executes MPI_Gather: Collects all delivery / rescue reports from ranks in rank order.
      */
     @PostMapping("/gather")
     public ResponseEntity<CollectiveResult> gather(@RequestBody(required = false) CommRequest request) {
@@ -73,6 +75,18 @@ public class CollectiveCommController {
                 "defaultProcesses", 4,
                 "defaultChunkSize", 2,
                 "supportedOperations", new String[]{"BCAST", "SCATTER", "GATHER", "RUN_ALL"}
+        ));
+    }
+
+    /**
+     * Handle input validation errors (e.g., processes out of range 2..16 or chunkSize out of 1..10).
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationException(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "status", "ERROR",
+                "errorMessage", ex.getMessage(),
+                "selfCheckPassed", false
         ));
     }
 }

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Load Balancer (Exp 6) — DRS Web Edition</title>
+  <meta name="description" content="Dynamic capacity-aware load balancing across disaster-relief UAV and edge nodes.">
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    /* ── Load Balancer Scoped Styles ── */
+    .node-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .node-card {
+      background: var(--bg-surface);
+      border: 2px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      transition: all var(--transition-normal);
+      position: relative;
+    }
+    .node-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .node-card.available {
+      border-color: var(--color-success-border);
+    }
+    .node-card.unavailable {
+      border-color: var(--color-danger-border);
+      opacity: 0.65;
+      background: #fafafa;
+    }
+    .node-card.highlight-assigned {
+      animation: pulse-node 0.8s ease;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.25);
+    }
+    @keyframes pulse-node {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37,99,235,0.5); }
+      50% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(37,99,235,0); }
+      100% { transform: scale(1); }
+    }
+    .node-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .node-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .node-metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 0.82rem;
+      margin-bottom: 12px;
+      color: var(--text-muted);
+    }
+    .metric-item {
+      background: var(--bg-app);
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+    }
+    .metric-item strong {
+      color: var(--text-main);
+    }
+    .utilization-section {
+      margin-top: 10px;
+    }
+    .utilization-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .progress-bar-animated {
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease !important;
+    }
+    .node-card-actions {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      border-top: 1px dashed var(--border-light);
+      padding-top: 8px;
+    }
+    .toggle-switch-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .toggle-switch-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--color-success);
+      cursor: pointer;
+    }
+    .trace-inspector {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.82rem;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .trace-step-line {
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .trace-step-line:last-child {
+      border-bottom: none;
+    }
+    .trace-highlight {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+    .trace-success {
+      color: #4ade80;
+      font-weight: 700;
+    }
+    .trace-warning {
+      color: #facc15;
+    }
+    .eval-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 10px;
+    }
+    .eval-table th {
+      text-align: left;
+      padding: 6px 8px;
+      background: rgba(255,255,255,0.06);
+      color: #94a3b8;
+    }
+    .eval-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .badge-task-search { background: #e0f2fe; color: #0369a1; }
+    .badge-task-medical { background: #fee2e2; color: #b91c1c; }
+    .badge-task-food { background: #fef3c7; color: #b45309; }
+    .badge-task-general { background: #f3f4f6; color: #4b5563; }
+  </style>
+</head>
+<body>
+  <div id="app-layout">
+    <!-- Sidebar is automatically injected here by /js/layout.js -->
+
+    <!-- Main Content Area -->
+    <div id="main-wrapper">
+      <!-- Top header is automatically injected here by /js/layout.js -->
+      <div id="header-mount"></div>
+
+      <!-- Page Content -->
+      <main class="content-container">
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">⚖️ Load Balancer &amp; Task Allocation (Exp 6)</h1>
+            <p class="page-description">
+              Distributes emergency rescue tasks across UAV and edge nodes by lowest projected utilization:
+              <code>projectedUtilization = (currentLoad + workload) / effectiveCapacity</code>.
+              Effective capacity is dynamically factored by real-time battery and signal strength.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="btn-seed-tasks" class="btn btn-outline" title="Load sample disaster tasks from legacy data">
+              🌱 Load Sample Tasks
+            </button>
+            <button id="btn-assign-all" class="btn btn-primary" title="Assign all pending tasks across candidate nodes">
+              🚀 Assign All Pending
+            </button>
+            <button id="btn-refresh" class="btn btn-outline" title="Refresh state from backend">
+              🔄 Refresh
+            </button>
+            <button id="btn-reset-sim" class="btn btn-outline" title="Reset all node loads to 0 and re-enable nodes">
+              🧹 Reset Simulation
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Candidate Nodes</span>
+              <div class="kpi-icon-wrap" style="background:#eff6ff; color:#2563eb;">📡</div>
+            </div>
+            <div class="kpi-value" id="kpi-active-nodes">--</div>
+            <div class="kpi-meta">
+              <span id="kpi-nodes-badge" class="badge badge-green">ONLINE</span>
+              <span id="kpi-nodes-sub">Fleet operational</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Pending Tasks</span>
+              <div class="kpi-icon-wrap" style="background:#fffbeb; color:#d97706;">⏳</div>
+            </div>
+            <div class="kpi-value" id="kpi-pending-tasks">0</div>
+            <div class="kpi-meta">
+              <span id="kpi-pending-workload">0.0</span> workload queued
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Assigned Tasks</span>
+              <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">✅</div>
+            </div>
+            <div class="kpi-value" id="kpi-assigned-tasks">0</div>
+            <div class="kpi-meta">
+              <span id="kpi-assigned-workload">0.0</span> total work assigned
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Fleet Utilization</span>
+              <div class="kpi-icon-wrap" style="background:#f5f3ff; color:#7c3aed;">📊</div>
+            </div>
+            <div class="kpi-value" id="kpi-avg-utilization">0.0%</div>
+            <div class="kpi-meta">
+              <span>Effective capacity basis</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Candidate Nodes & Real-Time Capacity Fleet Card -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Candidate Fleet &amp; Effective Capacity</h2>
+              <div class="card-subtitle">
+                Effective Capacity = <code>maxCapacity × ((battery/100 + signal/100) / 2)</code>.
+                Toggle any node's availability to test failure recovery and load re-balancing!
+              </div>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">
+              <span style="display: inline-block; width: 10px; height: 10px; background: var(--color-success); border-radius: 50%; margin-right: 4px;"></span> &lt;50%
+              <span style="display: inline-block; width: 10px; height: 10px; background: var(--color-warning); border-radius: 50%; margin: 0 4px 0 12px;"></span> 50-80%
+              <span style="display: inline-block; width: 10px; height: 10px; background: var(--color-danger); border-radius: 50%; margin: 0 4px 0 12px;"></span> &gt;80%
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="nodes-container" class="node-grid">
+              <!-- Rendered dynamically by load-balancer.js -->
+              <div style="grid-column: 1/-1; text-align: center; padding: 24px; color: var(--text-muted);">
+                Loading candidate fleet...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-Column Working Area: Task Creation & Assignment Trace -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+
+          <!-- Left Column: Task Creation Form -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">➕ Create Rescue Task</h2>
+                <div class="card-subtitle">Queue a new mission for capacity-aware allocation</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <form id="task-form" onsubmit="return false;">
+                <div class="form-group mb-4">
+                  <label class="form-label" for="task-desc">Task Description *</label>
+                  <input type="text" id="task-desc" class="form-input"
+                         placeholder="e.g. Search for survivors in collapsed building" required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                  <div class="form-group">
+                    <label class="form-label" for="task-workload">Required Workload (Units) *</label>
+                    <input type="number" id="task-workload" class="form-input" min="0.5" max="20" step="0.5" value="3.0" required>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="task-type">Mission Type</label>
+                    <select id="task-type" class="form-select">
+                      <option value="Search">Search &amp; Rescue</option>
+                      <option value="Medical">Medical Supplies</option>
+                      <option value="Food">Food &amp; Water</option>
+                      <option value="General">General Logistics</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                  <div class="form-group">
+                    <label class="form-label" for="task-cluster">Target Cluster</label>
+                    <select id="task-cluster" class="form-select">
+                      <option value="Cluster-A">Cluster-A (North Zone)</option>
+                      <option value="Cluster-B">Cluster-B (South Zone)</option>
+                      <option value="Cluster-C">Cluster-C (East Zone)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="task-id-custom">Task ID (Optional)</label>
+                    <input type="text" id="task-id-custom" class="form-input" placeholder="e.g. TASK-99 (auto-generated if empty)">
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 16px;">
+                  <button type="submit" id="btn-submit-task" class="btn btn-primary" style="flex: 1;">
+                    ➕ Add Task to Queue
+                  </button>
+                  <button type="button" id="btn-quick-seed" class="btn btn-outline">
+                    🌱 Quick Seed
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right Column: Latest Assignment Trace & Decision Inspector -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">🔍 Decision Inspector &amp; Algorithm Trace</h2>
+                <div class="card-subtitle">Live trace showing why candidate nodes were selected or skipped</div>
+              </div>
+              <div id="trace-meta-badge">
+                <span class="badge badge-info">AWAITING TASK</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="trace-summary" style="margin-bottom: 12px; font-size: 0.88rem; color: var(--text-muted);">
+                Select <strong>Assign Now</strong> on any task or click <strong>Assign All Pending</strong> to see the load balancer evaluate candidate nodes.
+              </div>
+
+              <div id="trace-terminal" class="trace-inspector">
+                <div class="trace-step-line" style="color: #64748b;">// Awaiting task assignment execution...</div>
+                <div class="trace-step-line" style="color: #64748b;">// Steps and projected utilization formulas will appear here.</div>
+              </div>
+
+              <!-- Candidate Evaluation Breakdown -->
+              <div id="eval-breakdown-wrap" style="display: none; margin-top: 14px;">
+                <div style="font-weight: 600; font-size: 0.82rem; margin-bottom: 4px; color: var(--text-muted); text-transform: uppercase;">
+                  Candidate Node Projected Utilization Table
+                </div>
+                <table class="eval-table" id="eval-table">
+                  <thead>
+                    <tr>
+                      <th>Node ID</th>
+                      <th>Eff. Cap</th>
+                      <th>Current Load</th>
+                      <th>Projected Util</th>
+                      <th>Outcome</th>
+                    </tr>
+                  </thead>
+                  <tbody id="eval-table-body">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Pending Tasks Table Card -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">⏳ Pending Rescue Tasks</h2>
+              <div class="card-subtitle">Tasks awaiting node assignment</div>
+            </div>
+            <div>
+              <button id="btn-clear-tasks" class="btn btn-sm btn-outline" style="color: var(--color-danger); border-color: var(--color-danger-border);">
+                🗑️ Clear All Tasks
+              </button>
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+              <table class="table" id="pending-tasks-table">
+                <thead>
+                  <tr>
+                    <th>Task ID</th>
+                    <th>Description</th>
+                    <th>Workload</th>
+                    <th>Type</th>
+                    <th>Cluster</th>
+                    <th>Created</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="pending-tasks-tbody">
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                      No pending tasks. Click <strong>🌱 Load Sample Tasks</strong> or create one above.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Assigned Tasks Table Card -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">✅ Assigned Rescue Tasks</h2>
+              <div class="card-subtitle">Tasks successfully dispatched to candidate UAV / edge nodes</div>
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+              <table class="table" id="assigned-tasks-table">
+                <thead>
+                  <tr>
+                    <th>Task ID</th>
+                    <th>Description</th>
+                    <th>Workload</th>
+                    <th>Type</th>
+                    <th>Cluster</th>
+                    <th>Assigned Node</th>
+                    <th>Assigned At</th>
+                    <th style="text-align: right;">Trace</th>
+                  </tr>
+                </thead>
+                <tbody id="assigned-tasks-tbody">
+                  <tr>
+                    <td colspan="8" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                      No assigned tasks yet.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Event Stream Widget -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">📡 Live SSE Compute Events</h2>
+              <div class="card-subtitle">Real-time TASK_CREATED and TASK_ASSIGNED events pushed from /api/events</div>
+            </div>
+            <span class="badge badge-green" id="sse-live-badge">CONNECTED</span>
+          </div>
+          <div class="card-body">
+            <div id="live-events-log" class="trace-inspector" style="max-height: 180px;">
+              <div class="trace-step-line" style="color: #64748b;">[SSE] Listening for module "compute" events (TASK_CREATED, TASK_ASSIGNED)...</div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/events.js"></script>
+  <script src="/js/load-balancer.js"></script>
+</body>
+</html>
+

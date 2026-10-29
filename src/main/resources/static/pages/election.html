@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leader Election (Exp 4) — DRS Web Edition</title>
+  <meta name="description" content="Bully and Ring leader election algorithms for disaster relief node coordination.">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/vendor/chart.umd.min.js"></script>
+  <style>
+    /* ── Election-specific page styles (scoped) ── */
+
+    .node-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    .node-card {
+      background: var(--bg-surface);
+      border: 2px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 16px 14px;
+      text-align: center;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+      position: relative;
+      cursor: default;
+    }
+    .node-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .node-card.alive {
+      border-color: var(--color-success-border);
+    }
+    .node-card.dead {
+      border-color: var(--color-danger-border);
+      opacity: 0.65;
+    }
+    .node-card.leader {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.18), var(--shadow-md);
+    }
+    .node-card.initiator {
+      border-color: var(--color-warning-border);
+      box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+    }
+    .node-card.highlight-msg {
+      animation: pulse-border 0.5s ease;
+    }
+    @keyframes pulse-border {
+      0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); }
+      70% { box-shadow: 0 0 0 8px rgba(37,99,235,0); }
+      100% { box-shadow: none; }
+    }
+
+    .node-id {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+    .node-priority {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .node-role-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      margin-top: 6px;
+    }
+    .node-role-badge.leader-badge {
+      background: var(--color-accent-subtle);
+      color: var(--color-accent);
+    }
+    .node-role-badge.initiator-badge {
+      background: var(--color-warning-bg);
+      color: #b45309;
+    }
+
+    .toggle-alive {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      user-select: none;
+    }
+    .toggle-alive input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--color-success);
+      cursor: pointer;
+    }
+
+    .step-line {
+      padding: 5px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      border-left: 3px solid transparent;
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+    }
+    .step-line.active {
+      background: var(--color-accent-subtle);
+      border-left-color: var(--color-accent);
+    }
+    .step-line.election-msg { color: var(--color-info); }
+    .step-line.coordinator-msg { color: var(--color-success); }
+    .step-line.alive-msg { color: var(--color-warning); }
+    .step-line.result-msg {
+      color: var(--color-accent);
+      font-weight: 600;
+    }
+
+    .chart-container-sm {
+      max-width: 100%;
+      height: 220px;
+      position: relative;
+    }
+
+    .speed-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .speed-control input[type="range"] {
+      width: 80px;
+      accent-color: var(--color-accent);
+    }
+  </style>
+</head>
+<body>
+  <div id="app-layout">
+    <!-- Sidebar dynamically injected by layout.js -->
+
+    <div id="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-container">
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="badge badge-amber">EXPERIMENT 4</span>
+              <span class="badge badge-blue">GRASIT'S MODULE</span>
+            </div>
+            <h1 class="page-title">Leader Election</h1>
+            <p class="page-description">
+              Simulates <strong>Bully</strong> and <strong>Ring</strong> leader election algorithms.
+              When a network partition isolates a sub-cluster from the main coordinator, nodes elect a temporary
+              local leader using priority-based voting — ensuring rescue operations continue without interruption.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button id="btn-reset" class="btn btn-outline">🔄 Reset</button>
+          </div>
+        </div>
+
+        <!-- KPI Metrics -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Participating Nodes</span>
+              <div class="kpi-icon-wrap" style="background:#eff6ff; color:#2563eb;">📡</div>
+            </div>
+            <div class="kpi-value" id="kpi-nodes">5</div>
+            <div class="kpi-meta">
+              <span class="badge badge-green" id="kpi-alive-badge">5 ALIVE</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Current Leader</span>
+              <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">👑</div>
+            </div>
+            <div class="kpi-value" id="kpi-leader" style="font-size: 1.5rem;">—</div>
+            <div class="kpi-meta">
+              <span class="badge badge-info" id="kpi-algo-badge">NONE</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Messages Exchanged</span>
+              <div class="kpi-icon-wrap" style="background:#fffbeb; color:#d97706;">⚡</div>
+            </div>
+            <div class="kpi-value" id="kpi-messages">0</div>
+            <div class="kpi-meta">
+              <span>Total election messages</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Elections Run</span>
+              <div class="kpi-icon-wrap" style="background:#f5f3ff; color:#7c3aed;">🗳️</div>
+            </div>
+            <div class="kpi-value" id="kpi-runs">0</div>
+            <div class="kpi-meta">
+              <span>This session</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-Column: Controls + Trace -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+
+          <!-- Left: Node Cards + Controls -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Election Configuration</h2>
+                <div class="card-subtitle">Toggle node liveness, select initiator, and run elections</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <!-- Node Grid -->
+              <div class="node-grid" id="node-grid">
+                <!-- Populated by JS -->
+              </div>
+
+              <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 12px;">
+                <!-- Initiator Dropdown -->
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="initiator-select">Initiator Node</label>
+                  <select id="initiator-select" class="form-select">
+                    <!-- Populated by JS -->
+                  </select>
+                  <div class="form-help">The node that detects the coordinator is unreachable and starts the election.</div>
+                </div>
+
+                <!-- Buttons -->
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                  <button id="btn-bully" class="btn btn-primary">🗳️ Run Bully</button>
+                  <button id="btn-ring" class="btn btn-primary" style="background: #7c3aed; border-color: #7c3aed;">🔁 Run Ring</button>
+                  <button id="btn-compare" class="btn btn-outline">⚖️ Compare Both</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Execution Trace -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Execution Trace</h2>
+                <div class="card-subtitle">Step-by-step message animation</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="speed-control">
+                  <span>Speed</span>
+                  <input type="range" id="anim-speed" min="50" max="800" value="300" step="50">
+                  <span id="speed-label">300ms</span>
+                </div>
+                <button id="btn-clear-trace" class="btn btn-outline btn-sm">Clear</button>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div class="terminal-card" id="trace-container" style="max-height: 420px; overflow-y: auto;">
+                <div style="color: #64748b; font-style: italic; padding: 24px; text-align: center;">
+                  Configure nodes above and click an election button to see the step-by-step trace here.
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Message Count Chart -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Message Count Comparison</h2>
+                <div class="card-subtitle">Bully vs Ring message overhead (Chart.js)</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container-sm">
+                <canvas id="msg-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- History Table -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Election History</h2>
+                <div class="card-subtitle">Past election runs from the database</div>
+              </div>
+              <span class="badge badge-green">LIVE</span>
+            </div>
+            <div class="table-container">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Algorithm</th>
+                    <th>Leader</th>
+                    <th>Priority</th>
+                    <th>Messages</th>
+                    <th>Cluster</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table-body">
+                  <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 24px;">No elections run yet.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Event Stream -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Live Election Events</h2>
+              <div class="card-subtitle">Real-time SSE events from the consensus module</div>
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <div id="module-live-log"></div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Core Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/events.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/election.js"></script>
+</body>
+</html>

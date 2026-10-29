@@ -70,3 +70,7 @@ Desktop.ini
 .env.*.local
 application-local.properties
 application-local.yml
+
+
+#DOCS
+docs/EXPERIMENTS_4_5_8.md

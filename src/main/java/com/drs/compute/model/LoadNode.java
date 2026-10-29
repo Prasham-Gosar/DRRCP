@@ -75,11 +75,19 @@ public class LoadNode implements Serializable {
         return maxCapacity;
     }
 
+    public double getCapacity() {
+        return maxCapacity;
+    }
+
     public void setMaxCapacity(double maxCapacity) {
         this.maxCapacity = maxCapacity;
     }
 
     public double getCurrentLoad() {
+        return currentLoad;
+    }
+
+    public double getLoad() {
         return currentLoad;
     }
 
@@ -89,6 +97,10 @@ public class LoadNode implements Serializable {
 
     public boolean isAvailable() {
         return available;
+    }
+
+    public String getStatus() {
+        return available ? "AVAILABLE" : "UNAVAILABLE";
     }
 
     public void setAvailable(boolean available) {

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fault Tolerance (Exp 8) — DRS Web Edition</title>
+  <meta name="description" content="Primary-backup replication, automated failover promotion, and diff verification.">
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    /* Scoped Fault Tolerance Design Styles */
+    .ft-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      padding: 28px 20px;
+      background: linear-gradient(135deg, var(--bg-app), #f1f5f9);
+      border-radius: var(--radius-md);
+      margin-bottom: 4px;
+    }
+    .ft-node-box {
+      width: 220px;
+      padding: 20px 16px;
+      border-radius: var(--radius-md);
+      text-align: center;
+      border: 2px solid var(--border-light);
+      background: var(--bg-surface);
+      transition: all var(--transition-normal);
+      position: relative;
+    }
+    .ft-node-box.primary-active {
+      border-color: var(--color-success-border);
+      box-shadow: 0 0 0 3px rgba(16,185,129,0.15), var(--shadow-md);
+    }
+    .ft-node-box.primary-failed {
+      border-color: var(--color-danger-border);
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.15);
+      opacity: 0.7;
+    }
+    .ft-node-box.backup-standby {
+      border-color: var(--border-medium);
+    }
+    .ft-node-box.backup-promoted {
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 4px rgba(245,158,11,0.25), var(--shadow-md);
+      animation: crown-glow 1.5s infinite alternate;
+    }
+    @keyframes crown-glow {
+      0% { box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+      100% { box-shadow: 0 0 16px rgba(245,158,11,0.5), 0 0 0 5px rgba(245,158,11,0.3); }
+    }
+    .ft-node-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .ft-node-id {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+    .ft-node-status {
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 3px 12px;
+      border-radius: var(--radius-full);
+      display: inline-block;
+    }
+    .ft-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .ft-arrow-line {
+      font-size: 1.6rem;
+      color: var(--color-accent);
+      line-height: 1;
+    }
+    .ft-arrow.broken .ft-arrow-line {
+      color: var(--color-danger);
+      text-decoration: line-through;
+    }
+    .replica-state-card {
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      background: var(--bg-surface);
+      overflow: hidden;
+    }
+    .replica-header {
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-light);
+      background: #f8fafc;
+    }
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+    .diff-table th {
+      background: #f8fafc;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .diff-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+  </style>
+</head>
+<body>
+  <div id="app-layout">
+    <div id="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-container">
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="badge badge-danger">EXPERIMENT 8</span>
+              <span class="badge badge-blue">GRASIT'S MODULE</span>
+            </div>
+            <h1 class="page-title">Primary-Backup Fault Tolerance</h1>
+            <p class="page-description">
+              Demonstrates state machine replication: updates received by the primary coordinator are
+              synchronously replicated to the standby backup. If the primary fails, the backup is
+              promoted seamlessly with zero data loss.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="btn-run-demo" class="btn btn-outline">🚀 Run Failover Demo</button>
+            <button id="btn-reset" class="btn btn-outline">🔄 Reset System</button>
+          </div>
+        </div>
+
+        <!-- KPI Metrics -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Primary Node</span>
+              <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">🖥️</div>
+            </div>
+            <div class="kpi-value" id="kpi-primary" style="font-size: 1.25rem;">Coordinator-Primary</div>
+            <div class="kpi-meta">
+              <span class="badge badge-green" id="kpi-primary-status">ACTIVE</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Backup Replica</span>
+              <div class="kpi-icon-wrap" style="background:#eff6ff; color:#2563eb;">🛡️</div>
+            </div>
+            <div class="kpi-value" id="kpi-backup" style="font-size: 1.25rem;">Coordinator-Backup</div>
+            <div class="kpi-meta">
+              <span class="badge badge-gray" id="kpi-backup-status">STANDBY</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Replicated Entries</span>
+              <div class="kpi-icon-wrap" style="background:#fffbeb; color:#d97706;">📋</div>
+            </div>
+            <div class="kpi-value" id="kpi-updates">0</div>
+            <div class="kpi-meta">
+              <span>Synced across replicas</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Cluster Health</span>
+              <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">💚</div>
+            </div>
+            <div class="kpi-value" id="kpi-health" style="font-size: 1.35rem;">HEALTHY</div>
+            <div class="kpi-meta">
+              <span class="badge badge-green" id="kpi-health-badge">SYNCHRONIZED</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Architecture Topology Diagram -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Live Replication Topology</h2>
+              <div class="card-subtitle">State transition and synchronous heartbeat channel</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="ft-diagram" id="ft-diagram"></div>
+          </div>
+        </div>
+
+        <!-- 2-Column: Send Updates & Trace -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          
+          <!-- Send Update & Controls Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">System Controls</h2>
+                <div class="card-subtitle">Dispatch new update to active leader or simulate failure</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <form id="update-form" onsubmit="return false;">
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="form-group">
+                    <label class="form-label" for="resource-id">Resource ID</label>
+                    <input type="text" id="resource-id" class="form-input" placeholder="e.g. House-12" value="House-12">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="update-type">Update Type</label>
+                    <select id="update-type" class="form-input">
+                      <option value="STATUS">STATUS</option>
+                      <option value="SUPPLIES">SUPPLIES</option>
+                      <option value="PERSONNEL">PERSONNEL</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="form-group">
+                    <label class="form-label" for="update-value">Value</label>
+                    <select id="update-value" class="form-input">
+                      <option value="NEEDS_RESCUE">NEEDS_RESCUE</option>
+                      <option value="RESCUED">RESCUED</option>
+                      <option value="MEDICAL_ASSISTANCE">MEDICAL_ASSISTANCE</option>
+                      <option value="OPEN">OPEN</option>
+                      <option value="BLOCKED">BLOCKED</option>
+                      <option value="DELIVERED">DELIVERED</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="source-node">Source Node</label>
+                    <select id="source-node" class="form-input">
+                      <option value="UAV-01">UAV-01</option>
+                      <option value="UAV-02">UAV-02</option>
+                      <option value="UAV-03">UAV-03</option>
+                      <option value="Edge-01">Edge-01</option>
+                      <option value="Edge-02">Edge-02</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+                  <button type="submit" id="btn-send-update" class="btn btn-primary">📤 Replicate Update</button>
+                  <button type="button" id="btn-fail-primary" class="btn" style="background: #ef4444; color: white; border: none;">💥 Kill Primary</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Step Trace Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Replication Step Trace</h2>
+                <div class="card-subtitle">Real-time coordinator transaction trace</div>
+              </div>
+              <button id="btn-clear-trace" class="btn btn-outline btn-sm">Clear</button>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div id="trace-container" style="max-height: 250px; overflow-y: auto; background: #0f172a; color: #f8fafc; font-family: var(--font-mono, monospace); font-size: 0.8rem; padding: 12px;">
+                <div style="color: #64748b; font-style: italic;">Send an update or trigger failure to see replication trace.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Primary vs Backup State Tables & Diff View -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Replica State Maps &amp; Synchronization Diff</h2>
+              <div class="card-subtitle">Verify state consistency between Primary Coordinator and Backup Standby</div>
+            </div>
+            <span class="badge badge-green" id="diff-status-badge">SYNCHRONIZED (0 DIFF)</span>
+          </div>
+          <div class="card-body">
+            
+            <!-- 2-Column: Primary State vs Backup State -->
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              
+              <!-- Primary Card -->
+              <div class="replica-state-card">
+                <div class="replica-header">
+                  <span id="primary-card-title">🖥️ Primary: Coordinator-Primary</span>
+                  <span class="badge badge-green" id="primary-card-badge">ACTIVE</span>
+                </div>
+                <div style="max-height: 200px; overflow-y: auto;">
+                  <table class="diff-table">
+                    <thead>
+                      <tr><th>Resource</th><th>Type</th><th>Value</th><th>Source</th></tr>
+                    </thead>
+                    <tbody id="primary-table-body">
+                      <tr><td colspan="4" style="text-align: center; color: #94a3b8; font-style: italic;">No entries.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Backup Card -->
+              <div class="replica-state-card">
+                <div class="replica-header">
+                  <span id="backup-card-title">🛡️ Backup: Coordinator-Backup</span>
+                  <span class="badge badge-gray" id="backup-card-badge">STANDBY</span>
+                </div>
+                <div style="max-height: 200px; overflow-y: auto;">
+                  <table class="diff-table">
+                    <thead>
+                      <tr><th>Resource</th><th>Type</th><th>Value</th><th>Source</th></tr>
+                    </thead>
+                    <tbody id="backup-table-body">
+                      <tr><td colspan="4" style="text-align: center; color: #94a3b8; font-style: italic;">No entries.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Diff Verification Table -->
+            <div style="border-top: 1px solid var(--border-light); padding-top: 14px;">
+              <h3 style="font-size: 0.88rem; font-weight: 700; margin-bottom: 8px;">State Diff Verification</h3>
+              <table class="diff-table">
+                <thead>
+                  <tr>
+                    <th>Resource Key</th>
+                    <th>Primary Value</th>
+                    <th>Backup Value</th>
+                    <th>Replication Status</th>
+                  </tr>
+                </thead>
+                <tbody id="diff-table-body">
+                  <tr><td colspan="4" style="text-align: center; color: #94a3b8; font-style: italic;">No updates in system.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Live FT Events SSE -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Live Fault Tolerance Events</h2>
+              <div class="card-subtitle">Real-time SSE notifications from /api/events (ft channel)</div>
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <div id="module-live-log" style="max-height: 180px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/events.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/faulttolerance.js"></script>
+</body>
+</html>

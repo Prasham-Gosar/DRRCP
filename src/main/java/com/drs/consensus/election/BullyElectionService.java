@@ -42,19 +42,25 @@ public class BullyElectionService {
         steps.add("[Bully] " + initiator.getId()
                 + " notices the coordinator is unreachable -> starts an election.");
 
+        boolean anyAlive = nodes.stream().anyMatch(ElectionNode::isAlive);
+        if (!anyAlive) {
+            steps.add("[Bully] All nodes are dead. No alive node can be elected leader.");
+            return new ElectionResult("BULLY", "NO_LEADER", -1, 0, steps);
+        }
+
         Set<String> visited = new LinkedHashSet<>();
         Deque<ElectionNode> queue = new ArrayDeque<>();
         queue.add(initiator);
         visited.add(initiator.getId());
 
-        ElectionNode leader = null;
+        ElectionNode leader = initiator;
         while (!queue.isEmpty()) {
             ElectionNode current = queue.poll();
             List<ElectionNode> higher = higherPriorityAlive(nodes, current);
             if (higher.isEmpty()) {
                 steps.add("[Bully] " + current.getId()
                         + " receives no responses from higher-priority nodes -> declares itself leader.");
-                if (leader == null) leader = current;
+                leader = current;
                 continue;
             }
             for (ElectionNode h : higher) {
