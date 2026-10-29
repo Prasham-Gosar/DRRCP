@@ -1,0 +1,23 @@
+{
+  "n": 400,
+  "threads": 4,
+  "sequentialMs": 145.20,
+  "parallelMs": 42.10,
+  "speedup": 3.45,
+  "efficiency": 0.86,
+  "correct": true,
+  "sampleResult": [
+    [1450, 1620, 1790, 1960],
+    [1620, 1810, 2000, 2190],
+    [1790, 2000, 2210, 2420],
+    [1960, 2190, 2420, 2650]
+  ],
+  "steps": [
+    "Initialized 400 x 400 Zone-Risk (A) and Resource-Demand (B) matrices...",
+    "Sequential execution completed in 145.20 ms",
+    "Parallel execution (4 threads) completed in 42.10 ms",
+    "Correctness Verification: PASSED (100% Match)",
+    "Speedup: 3.45x | Parallel Efficiency: 0.86 (86.0%)"
+  ],
+  "completedAt": "2026-10-29T12:00:00Z"
+}
