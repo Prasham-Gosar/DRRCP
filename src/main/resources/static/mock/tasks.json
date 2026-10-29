@@ -1,0 +1,74 @@
+[
+  {
+    "taskId": "TASK-PART-A1",
+    "description": "Cluster-A: Aerial thermal scan for trapped survivors in Sector 1",
+    "workload": 3.0,
+    "clusterId": "Cluster-A",
+    "type": "Search",
+    "status": "ASSIGNED",
+    "assignedNodeId": "UAV-01",
+    "assignedByLeaderId": "UAV-02",
+    "createdAt": "2026-10-29T10:15:00Z",
+    "assignedAt": "2026-10-29T10:15:05Z"
+  },
+  {
+    "taskId": "TASK-PART-A2",
+    "description": "Cluster-A: Emergency trauma antibiotic and bandage air-drop",
+    "workload": 4.0,
+    "clusterId": "Cluster-A",
+    "type": "Medical",
+    "status": "ASSIGNED",
+    "assignedNodeId": "UAV-02",
+    "assignedByLeaderId": "UAV-02",
+    "createdAt": "2026-10-29T10:16:00Z",
+    "assignedAt": "2026-10-29T10:16:05Z"
+  },
+  {
+    "taskId": "TASK-PART-A3",
+    "description": "Cluster-A: High-calorie ration pack delivery to shelter",
+    "workload": 2.0,
+    "clusterId": "Cluster-A",
+    "type": "Food",
+    "status": "ASSIGNED",
+    "assignedNodeId": "UAV-01",
+    "assignedByLeaderId": "UAV-02",
+    "createdAt": "2026-10-29T10:17:00Z",
+    "assignedAt": "2026-10-29T10:17:04Z"
+  },
+  {
+    "taskId": "TASK-PART-B1",
+    "description": "Cluster-B: Ground sonar search in collapsed municipal building",
+    "workload": 5.0,
+    "clusterId": "Cluster-B",
+    "type": "Search",
+    "status": "ASSIGNED",
+    "assignedNodeId": "Edge-01",
+    "assignedByLeaderId": "Edge-01",
+    "createdAt": "2026-10-29T10:18:00Z",
+    "assignedAt": "2026-10-29T10:18:06Z"
+  },
+  {
+    "taskId": "TASK-PART-B2",
+    "description": "Cluster-B: Field clinic mobile saline and triage replenishment",
+    "workload": 3.0,
+    "clusterId": "Cluster-B",
+    "type": "Medical",
+    "status": "ASSIGNED",
+    "assignedNodeId": "Edge-02",
+    "assignedByLeaderId": "Edge-01",
+    "createdAt": "2026-10-29T10:19:00Z",
+    "assignedAt": "2026-10-29T10:19:04Z"
+  },
+  {
+    "taskId": "TASK-PART-B3",
+    "description": "Cluster-B: Portable water purification unit transport",
+    "workload": 2.0,
+    "clusterId": "Cluster-B",
+    "type": "Food",
+    "status": "ASSIGNED",
+    "assignedNodeId": "Edge-01",
+    "assignedByLeaderId": "Edge-01",
+    "createdAt": "2026-10-29T10:20:00Z",
+    "assignedAt": "2026-10-29T10:20:05Z"
+  }
+]
