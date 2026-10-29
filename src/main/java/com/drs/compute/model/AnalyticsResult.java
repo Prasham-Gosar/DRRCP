@@ -167,3 +167,4 @@ public class AnalyticsResult implements Serializable {
         this.steps = steps;
     }
 }
+

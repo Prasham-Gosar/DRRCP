@@ -136,3 +136,4 @@ class SparkJobServiceTest {
         assertEquals(20.0, latest.get().getTotalWorkload());
     }
 }
+

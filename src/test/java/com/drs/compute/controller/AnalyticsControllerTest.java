@@ -125,3 +125,4 @@ class AnalyticsControllerTest {
                 .andExpect(jsonPath("$.count").value(1));
     }
 }
+

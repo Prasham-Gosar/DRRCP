@@ -23,3 +23,4 @@ public interface AnalyticsRunRepository extends JpaRepository<AnalyticsRun, Long
      */
     Optional<AnalyticsRun> findTopByOrderByTimestampDesc();
 }
+

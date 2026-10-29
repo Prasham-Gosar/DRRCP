@@ -56,3 +56,4 @@ public class AnalyticsBreakdownItem implements Serializable {
         this.totalWorkload = totalWorkload;
     }
 }
+

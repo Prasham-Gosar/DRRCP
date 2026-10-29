@@ -104,3 +104,4 @@ class MapReduceFallbackServiceTest {
         assertEquals(45, result.getDurationMs());
     }
 }
+

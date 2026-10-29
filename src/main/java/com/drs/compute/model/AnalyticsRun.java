@@ -110,3 +110,4 @@ public class AnalyticsRun implements Serializable {
         this.resultJson = resultJson;
     }
 }
+
