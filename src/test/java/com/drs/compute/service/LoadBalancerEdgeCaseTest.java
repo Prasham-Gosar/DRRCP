@@ -116,3 +116,4 @@ class LoadBalancerEdgeCaseTest {
         assertTrue(result.getSteps().stream().anyMatch(s -> s.contains("no effective capacity")));
     }
 }
+
