@@ -42,9 +42,22 @@
     '/api/ft/primary/fail': '/mock/ft_state.json',
     '/api/ft/reset': '/mock/ft_state.json',
 
+    // Network & Partition (Exp 3)
+    '/api/network/status': '/mock/network_status.json',
+    '/api/network/partition': '/mock/network_status_partitioned.json',
+    '/api/network/heal': '/mock/network_status.json',
+
     // Compute & Load Balancer (Exp 6, 7)
     '/api/loadbalancer/nodes': '/mock/loadbalancer.json',
-    '/api/loadbalancer/assign-all': '/mock/loadbalancer.json'
+    '/api/loadbalancer/assign-all': '/mock/loadbalancer.json',
+    '/api/tasks': '/mock/tasks.json',
+    '/api/tasks/pipeline/summary': '/mock/tasks.json',
+
+    // Parallel Matrix (Exp 10)
+    '/api/matrix/run': '/mock/matrix_result.json',
+    '/api/matrix/sweep': '/mock/matrix_result.json',
+    '/api/matrix/status': '/mock/matrix_status.json',
+    '/api/matrix/latest': '/mock/matrix_result.json'
   };
 
   class ApiClient {
