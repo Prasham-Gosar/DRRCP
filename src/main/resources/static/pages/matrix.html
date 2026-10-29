@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parallel Matrix Multiplication (Exp 10) — DRS Web Edition</title>
+  
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    /* ── Experiment 10 Styles ── */
+    .metric-value-huge {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--text-main);
+    }
+
+    .matrix-sample-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .matrix-cell {
+      background: #f8fafc;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 8px 4px;
+      text-align: center;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #1e293b;
+      transition: all var(--transition-fast);
+    }
+
+    .matrix-cell:hover {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      transform: scale(1.04);
+    }
+
+    .cell-high {
+      background: #fef2f2;
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+
+    .cell-mid {
+      background: #fffbeb;
+      color: #b45309;
+      border-color: #fde68a;
+    }
+
+    .cell-low {
+      background: #f0fdf4;
+      color: #15803d;
+      border-color: #bbf7d0;
+    }
+
+    .chart-container-card {
+      position: relative;
+      height: 260px;
+      width: 100%;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(2px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      border-radius: var(--radius-md);
+      transition: opacity 0.2s;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .pulse-green {
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-preset {
+      padding: 3px 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      border-radius: 4px;
+      border: 1px solid var(--border-medium);
+      background: #ffffff;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-preset:hover {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+  <div id="app-layout">
+    <!-- Sidebar dynamically injected by layout.js -->
+
+    <div id="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-container">
+        
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="badge badge-purple">EXPERIMENT 10</span>
+              <span class="badge badge-blue">VEDANT'S MODULE</span>
+              <span class="badge badge-green">LIVE</span>
+            </div>
+            <h1 class="page-title">Parallel Matrix Multiplication (HPC Risk Tensor)</h1>
+            <p class="page-description">
+              <strong>Disaster Relief Risk Tensor:</strong> Computes real-time priority scores by multiplying Sector Risk Factors (Matrix A) 
+              against Emergency Resource Demands (Matrix B) using parallel multi-threaded row decomposition (MPI scatter/gather pattern).
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="btn-run" class="btn btn-primary" style="box-shadow: 0 4px 14px rgba(37,99,235,0.35); font-weight: 700;">
+              ⚡ Run Benchmark
+            </button>
+            <button id="btn-sweep" class="btn btn-outline" style="font-weight: 600;">
+              📈 Sweep Threads (1..8)
+            </button>
+          </div>
+        </div>
+
+        <!-- 3-Column Configuration / Telemetry Row -->
+        <div class="grid grid-cols-3 gap-6 mb-6">
+          
+          <!-- Configuration Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Computation Parameters</h2>
+                <div class="card-subtitle">Matrix dimension & worker threads</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <form id="matrix-form" onsubmit="return false;">
+                
+                <div class="form-group mb-4">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label class="form-label" for="input-n" style="margin-bottom: 0;">Dimension (N x N)</label>
+                    <span id="label-n" class="font-mono" style="font-size: 0.8rem; font-weight: 700; color: #2563eb;">400 x 400</span>
+                  </div>
+                  <input type="range" id="input-n-slider" min="50" max="800" step="50" value="400" style="width: 100%; cursor: pointer;">
+                  <div style="display: flex; gap: 6px; margin-top: 6px;">
+                    <button type="button" class="btn-preset" data-n="100">100 (Quick)</button>
+                    <button type="button" class="btn-preset" data-n="300">300 (Medium)</button>
+                    <button type="button" class="btn-preset" data-n="400">400 (Default)</button>
+                    <button type="button" class="btn-preset" data-n="600">600 (Heavy)</button>
+                    <button type="button" class="btn-preset" data-n="800">800 (Max)</button>
+                  </div>
+                  <div class="form-help">Max allowed N = 800 to prevent system memory overload.</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="select-threads">Worker Threads</label>
+                    <select id="select-threads" class="form-select">
+                      <option value="1">1 Thread</option>
+                      <option value="2">2 Threads</option>
+                      <option value="4" selected>4 Threads</option>
+                      <option value="8">8 Threads</option>
+                      <option value="16">16 Threads</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="select-max-threads">Max Sweep</label>
+                    <select id="select-max-threads" class="form-select">
+                      <option value="4">Up to 4 Threads</option>
+                      <option value="8" selected>Up to 8 Threads</option>
+                      <option value="16">Up to 16 Threads</option>
+                    </select>
+                  </div>
+                </div>
+
+              </form>
+            </div>
+          </div>
+
+          <!-- Speedup & Performance Telemetry Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Performance Telemetry</h2>
+                <div class="card-subtitle">Speedup factor and parallel efficiency</div>
+              </div>
+              <span id="badge-correctness" class="badge badge-gray">AWAITING RUN</span>
+            </div>
+            <div class="card-body" style="display: flex; flex-direction: column; justify-content: space-around;">
+              
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Sequential Time</div>
+                  <div class="metric-value-huge" id="val-seq-time">0.00 <span style="font-size: 0.9rem; font-weight: 600;">ms</span></div>
+                </div>
+                <div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Parallel Time</div>
+                  <div class="metric-value-huge" style="color: #2563eb;" id="val-par-time">0.00 <span style="font-size: 0.9rem; font-weight: 600;">ms</span></div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 mt-2" style="border-top: 1px solid var(--border-light); padding-top: 10px;">
+                <div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Speedup (Tseq / Tpar)</div>
+                  <div style="font-size: 1.4rem; font-weight: 800; color: #10b981;" id="val-speedup">0.00x</div>
+                </div>
+                <div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Parallel Efficiency</div>
+                  <div style="font-size: 1.4rem; font-weight: 800; color: #8b5cf6;" id="val-efficiency">0.0%</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Top-Left Sample Matrix Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Priority Tensor (Top-Left Sample)</h2>
+                <div class="card-subtitle">4x4 submatrix sample of computed scores</div>
+              </div>
+              <span class="badge badge-blue">C[4x4]</span>
+            </div>
+            <div class="card-body">
+              <div class="matrix-sample-grid" id="matrix-sample-container">
+                <div class="matrix-cell">0</div><div class="matrix-cell">0</div><div class="matrix-cell">0</div><div class="matrix-cell">0</div>
+                <div class="matrix-cell">0</div><div class="matrix-cell">0</div><div class="matrix-cell">0</div><div class="matrix-cell">0</div>
+                <div class="matrix-cell">0</div><div class="matrix-cell">0</div><div class="matrix-cell">0</div><div class="matrix-cell">0</div>
+                <div class="matrix-cell">0</div><div class="matrix-cell">0</div><div class="matrix-cell">0</div><div class="matrix-cell">0</div>
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 8px; text-align: right;">
+                Priority values = ∑ Risk(A) × Demand(B)
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 2-Column Chart Row -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          
+          <!-- Line Chart: Speedup vs Threads -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Speedup vs Thread Count</h2>
+                <div class="card-subtitle">Empirical speedup scaling compared to ideal linear speedup</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container-card">
+                <canvas id="chart-speedup"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bar Chart: Latency Comparison -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Execution Latency (ms)</h2>
+                <div class="card-subtitle">Sequential single-threaded vs parallel multi-threaded wall clock</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container-card">
+                <canvas id="chart-latency"></canvas>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Grid: Step Trace + Live SSE Events -->
+        <div class="grid grid-cols-2 gap-6">
+          
+          <!-- Chronological Step Trace Terminal Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Chronological Execution Trace</h2>
+                <div class="card-subtitle">Decomposition, row scattering, barrier join, and validation</div>
+              </div>
+              <button id="btn-clear-trace" class="btn btn-outline btn-sm">Clear</button>
+            </div>
+            <div class="card-body" style="padding: 10px;">
+              <div class="terminal-card" id="matrix-trace-log" style="height: 280px; overflow-y: auto;">
+                <div style="color: #64748b; font-style: italic;">Awaiting matrix multiplication benchmark execution...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Module Live Log -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Parallel Computing Live Events</h2>
+                <div class="card-subtitle">Real-time SSE filtered for module: <strong>comm</strong> (event: MATRIX_DONE)</div>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 0; max-height: 330px;">
+              <div id="matrix-live-log"></div>
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/vendor/chart.umd.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/events.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/matrix.js"></script>
+</body>
+</html>
