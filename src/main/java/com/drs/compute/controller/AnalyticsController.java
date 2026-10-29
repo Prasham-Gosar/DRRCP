@@ -82,5 +82,16 @@ public class AnalyticsController {
                 "message", "Disaster relief tasks successfully verified and seeded"
         ));
     }
-}
 
+    /**
+     * Handles concurrent execution attempts when MapReduce is already processing.
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.status(409).body(Map.of(
+                "status", 409,
+                "error", "CONFLICT",
+                "message", ex.getMessage()
+        ));
+    }
+}
