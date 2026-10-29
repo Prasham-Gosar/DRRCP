@@ -1,0 +1,48 @@
+{
+  "appName": "DRS-SparkAnalytics",
+  "timestamp": "2026-10-29T10:00:00Z",
+  "inputFile": "input/rescue_tasks.txt",
+  "totalTasks": 10,
+  "totalWorkload": 41.0,
+  "countsPerCluster": {
+    "Cluster-A": 4,
+    "Cluster-B": 3,
+    "Cluster-C": 3
+  },
+  "workloadPerCluster": {
+    "Cluster-A": 14.0,
+    "Cluster-B": 15.0,
+    "Cluster-C": 12.0
+  },
+  "countsPerType": {
+    "Food": 3,
+    "Medical": 4,
+    "Search": 3
+  },
+  "workloadPerType": {
+    "Food": 10.0,
+    "Medical": 14.0,
+    "Search": 17.0
+  },
+  "breakdown": [
+    { "cluster": "Cluster-A", "taskType": "Food", "taskCount": 1, "totalWorkload": 3.0 },
+    { "cluster": "Cluster-A", "taskType": "Medical", "taskCount": 2, "totalWorkload": 7.0 },
+    { "cluster": "Cluster-A", "taskType": "Search", "taskCount": 1, "totalWorkload": 4.0 },
+    { "cluster": "Cluster-B", "taskType": "Food", "taskCount": 1, "totalWorkload": 5.0 },
+    { "cluster": "Cluster-B", "taskType": "Medical", "taskCount": 1, "totalWorkload": 4.0 },
+    { "cluster": "Cluster-B", "taskType": "Search", "taskCount": 1, "totalWorkload": 6.0 },
+    { "cluster": "Cluster-C", "taskType": "Food", "taskCount": 1, "totalWorkload": 2.0 },
+    { "cluster": "Cluster-C", "taskType": "Medical", "taskCount": 1, "totalWorkload": 3.0 },
+    { "cluster": "Cluster-C", "taskType": "Search", "taskCount": 1, "totalWorkload": 7.0 }
+  ],
+  "engine": "spark",
+  "durationMs": 482,
+  "fallbackUsed": false,
+  "steps": [
+    "[INIT] Starting MapReduce computation on 10 tasks",
+    "[MAP] Emitting intermediate key-value pairs (Key='Cluster|Type', Value=(count=1, workload))",
+    "[SHUFFLE/SORT] Grouping and sorting intermediate pairs across partition keys",
+    "[REDUCE] Aggregating composite key buckets with associative sum reduction",
+    "[COMPLETE] MapReduce finished: totalTasks=10, totalWorkload=41.0 across 3 clusters"
+  ]
+}
