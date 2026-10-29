@@ -8,7 +8,6 @@ import java.time.Instant;
  * <p>
  * Exp 1 — registration + connectivity scoring.<br>
  * Exp 2 — heartbeat reception on a fixed thread pool + silent-node detection.
- * Node entity representing a disaster relief participant (Exp 1 & 2).
  */
 @Entity
 @Table(name = "nodes")
@@ -26,6 +25,9 @@ public class NodeEntity {
     /** Connectivity score = 2 × signal + battery. */
     private int connectivityScore;
 
+    /** Derived state label: STABLE, AT_RISK, PARTITION_LIKELY, PARTITIONED */
+    private String state;
+
     /** ALIVE or SILENT. */
     @Column(nullable = false)
     private String status = "ALIVE";
@@ -38,20 +40,7 @@ public class NodeEntity {
 
     private Instant registeredAt;
 
-    protected NodeEntity() { }
-
-    public NodeEntity(String nodeId, int battery, int signal,
-                      String nodeType, String clusterId) {
-    private String nodeType;
-    private String clusterId;
-    private String status = "ALIVE";
-    private Instant lastHeartbeat;
-    private String lastThreadName;
-    private int connectivityScore;
-    private String state;
-
-    public NodeEntity() {
-    }
+    public NodeEntity() { }
 
     public NodeEntity(String nodeId, int battery, int signal, String nodeType, String clusterId) {
         this.nodeId = nodeId;
@@ -67,14 +56,19 @@ public class NodeEntity {
     /** Same formula as legacy ClusterCoordinatorImpl.handleRegister(). */
     public void computeScore() {
         this.connectivityScore = (2 * signal) + battery;
+        if (connectivityScore >= 150) {
+            this.state = "STABLE";
+        } else if (connectivityScore >= 100) {
+            this.state = "AT_RISK";
+        } else if (connectivityScore >= 50) {
+            this.state = "PARTITION_LIKELY";
+        } else {
+            this.state = "PARTITIONED";
+        }
     }
 
-    /** Derive the state label from connectivity score (same thresholds as legacy). */
-    public String getState() {
-        if (connectivityScore >= 150) return "STABLE";
-        if (connectivityScore >= 100) return "AT_RISK";
-        if (connectivityScore >= 50)  return "PARTITION_LIKELY";
-        return "PARTITIONED";
+    public void recalculateScore() {
+        computeScore();
     }
 
     // ── getters ──
@@ -85,6 +79,7 @@ public class NodeEntity {
     public String getNodeType()          { return nodeType; }
     public String getClusterId()         { return clusterId; }
     public int getConnectivityScore()    { return connectivityScore; }
+    public String getState()             { return state != null ? state : "STABLE"; }
     public String getStatus()            { return status; }
     public Instant getLastHeartbeat()    { return lastHeartbeat; }
     public String getLastThreadName()    { return lastThreadName; }
@@ -92,6 +87,7 @@ public class NodeEntity {
 
     // ── setters ──
 
+    public void setNodeId(String v)               { this.nodeId = v; }
     public void setBattery(int v)                 { this.battery = v; computeScore(); }
     public void setSignal(int v)                  { this.signal = v; computeScore(); }
     public void setNodeType(String v)             { this.nodeType = v; }
@@ -99,53 +95,6 @@ public class NodeEntity {
     public void setStatus(String v)               { this.status = v; }
     public void setLastHeartbeat(Instant v)        { this.lastHeartbeat = v; }
     public void setLastThreadName(String v)        { this.lastThreadName = v; }
+    public void setConnectivityScore(int v)       { this.connectivityScore = v; }
+    public void setState(String v)                { this.state = v; }
 }
-        this.lastHeartbeat = Instant.now();
-        this.status = "ALIVE";
-        recalculateScore();
-    }
-
-    public void recalculateScore() {
-        this.connectivityScore = 2 * signal + battery;
-        if (connectivityScore >= 150) {
-            this.state = "STABLE";
-        } else if (connectivityScore >= 80) {
-            this.state = "AT_RISK";
-        } else if (connectivityScore >= 40) {
-            this.state = "PARTITION_LIKELY";
-        } else {
-            this.state = "PARTITIONED";
-        }
-    }
-
-    public String getNodeId() { return nodeId; }
-    public void setNodeId(String nodeId) { this.nodeId = nodeId; }
-
-    public int getBattery() { return battery; }
-    public void setBattery(int battery) { this.battery = battery; recalculateScore(); }
-
-    public int getSignal() { return signal; }
-    public void setSignal(int signal) { this.signal = signal; recalculateScore(); }
-
-    public String getNodeType() { return nodeType; }
-    public void setNodeType(String nodeType) { this.nodeType = nodeType; }
-
-    public String getClusterId() { return clusterId; }
-    public void setClusterId(String clusterId) { this.clusterId = clusterId; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-
-    public Instant getLastHeartbeat() { return lastHeartbeat; }
-    public void setLastHeartbeat(Instant lastHeartbeat) { this.lastHeartbeat = lastHeartbeat; }
-
-    public String getLastThreadName() { return lastThreadName; }
-    public void setLastThreadName(String lastThreadName) { this.lastThreadName = lastThreadName; }
-
-    public int getConnectivityScore() { return connectivityScore; }
-    public void setConnectivityScore(int connectivityScore) { this.connectivityScore = connectivityScore; }
-
-    public String getState() { return state; }
-    public void setState(String state) { this.state = state; }
-}
-

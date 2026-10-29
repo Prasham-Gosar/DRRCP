@@ -38,6 +38,9 @@ public class PhaseDetail {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
+    public String getState() { return status; }
+    public void setState(String state) { this.status = state; }
+
     public long getStartedAt() { return startedAt; }
     public void setStartedAt(long startedAt) { this.startedAt = startedAt; }
 
@@ -57,4 +60,3 @@ public class PhaseDetail {
         this.steps.add(step);
     }
 }
-

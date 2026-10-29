@@ -7,16 +7,11 @@ import com.drs.core.scenario.ScenarioStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
- * REST controller for Exp 1-5 End-to-End Scenario Runner.
- * <p>
- * Endpoints:
- * <ul>
- *   <li>{@code POST /api/scenario/run} — trigger asynchronous execution of the full story</li>
- *   <li>{@code GET  /api/scenario/status} — query current phase, step telemetry, and reconciliation results</li>
- *   <li>{@code POST /api/scenario/reset} — reset scenario state</li>
- *   <li>{@code GET  /api/reconcile/latest} — convenience endpoint providing latest reconciliation summary</li>
- * </ul>
+ * REST controller for Exp Full Story: orchestrating the 7-phase disaster relief scenario.
+ * Supports /api/scenario/run, /api/scenario/status, /api/scenario/reset.
  */
 @RestController
 public class ScenarioController {
@@ -29,14 +24,15 @@ public class ScenarioController {
 
     @PostMapping("/api/scenario/run")
     public ResponseEntity<?> runScenario(@RequestBody(required = false) ScenarioConfig config) {
+        if (config == null) {
+            config = new ScenarioConfig();
+        }
         try {
-            scenarioRunner.runScenario(config);
+            CompletableFuture<ScenarioStatus> future = scenarioRunner.runScenario(config);
+            // Return 202 Accepted with immediate status snapshot
             return ResponseEntity.accepted().body(scenarioRunner.getStatus());
         } catch (IllegalStateException e) {
-            return ResponseEntity.status(409).body(java.util.Map.of(
-                    "error", e.getMessage(),
-                    "status", scenarioRunner.getStatus()
-            ));
+            return ResponseEntity.status(409).body(java.util.Map.of("error", e.getMessage()));
         }
     }
 
@@ -55,10 +51,9 @@ public class ScenarioController {
     }
 
     /**
-     * Fallback / convenience endpoint for /api/reconcile/latest.
-     * Integrates with Grasit's ReconciliationService to return the latest reconciliation result.
+     * Scenario-specific reconciliation endpoint at /api/scenario/reconcile/latest.
      */
-    @GetMapping("/api/reconcile/latest")
+    @GetMapping("/api/scenario/reconcile/latest")
     public ResponseEntity<?> getLatestReconciliation() {
         ReconciliationResult result = scenarioRunner.getLastReconciliation();
         if (result == null) {
@@ -73,4 +68,3 @@ public class ScenarioController {
         return ResponseEntity.ok(result);
     }
 }
-

@@ -50,7 +50,7 @@ class ClusterTaskServiceTest {
                 eventPublisher
         );
 
-        when(taskRepository.save(any(RescueTaskEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(taskRepository.save(any(RescueTaskEntity.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test

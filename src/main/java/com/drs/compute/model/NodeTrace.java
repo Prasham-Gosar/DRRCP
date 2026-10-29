@@ -64,6 +64,10 @@ public class NodeTrace implements Serializable {
         return skippedReason;
     }
 
+    public String getSkipReason() {
+        return skippedReason;
+    }
+
     public void setSkippedReason(String skippedReason) {
         this.skippedReason = skippedReason;
     }

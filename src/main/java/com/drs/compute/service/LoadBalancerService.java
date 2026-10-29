@@ -232,7 +232,7 @@ public class LoadBalancerService {
         if (taskRepository == null) {
             throw new IllegalStateException("RescueTaskRepository is not configured");
         }
-        List<RescueTaskEntity> pending = taskRepository.findByStatus("PENDING");
+        List<RescueTaskEntity> rawPending = taskRepository.findByStatus("PENDING"); if (rawPending == null || rawPending.isEmpty()) { return Collections.emptyList(); } List<RescueTaskEntity> pending = new ArrayList<>(rawPending);
         if (pending == null || pending.isEmpty()) {
             return Collections.emptyList();
         }

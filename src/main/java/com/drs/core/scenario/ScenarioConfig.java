@@ -43,6 +43,10 @@ public class ScenarioConfig {
         }
     }
 
+    public void setClockSyncDriftMs(int ms) {
+        skews.put("UAV-01", (long) ms);
+    }
+
     public long getSkew(String nodeId, long defaultSkew) {
         return skews.getOrDefault(nodeId, defaultSkew);
     }
@@ -55,4 +59,3 @@ public class ScenarioConfig {
         this.fastMode = fastMode;
     }
 }
-
