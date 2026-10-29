@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "timestamp": "2026-10-29T09:45:00Z",
+    "engine": "spark",
+    "durationMs": 482,
+    "totalTasks": 10,
+    "totalWorkload": 41.0,
+    "status": "SUCCESS",
+    "resultJson": "{\"totalTasks\":10,\"totalWorkload\":41.0,\"engine\":\"spark\"}"
+  },
+  {
+    "id": 2,
+    "timestamp": "2026-10-29T09:30:00Z",
+    "engine": "streams",
+    "durationMs": 14,
+    "totalTasks": 10,
+    "totalWorkload": 41.0,
+    "status": "SUCCESS",
+    "resultJson": "{\"totalTasks\":10,\"totalWorkload\":41.0,\"engine\":\"streams\"}"
+  }
+]
+

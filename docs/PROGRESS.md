@@ -112,8 +112,43 @@ One section per person per day. Update yours in every PR.
   - `NodeEntityRepository.findAll()` / `findByClusterId(String clusterId)` to populate candidate fleet dynamically from live registrations. Safe fallback to default stubs is currently active.
 - Note for Vedant:
   - You can optionally add `aliases: ['/load-balancer.html', '/pages/loadbalancer.html']` to the `loadbalancer` entry in `static/js/layout.js`. Both paths work out of the box.
-### Day 3
--
+### Day 3 — Exp 7 Live: MapReduce Analytics (Spark + Streams Fallback)
+- Built `MapReduceFallbackService`:
+  - Complete, faithful in-memory MapReduce implementation using Java 17 Streams.
+  - Map phase: maps `RescueTaskEntity` into intermediate pair `(compositeKey = cluster + "|" + type, count = 1, workload)`.
+  - Shuffle & Sort phase: groups by composite key into sorted `TreeMap` partitions.
+  - Reduce phase: performs associative and commutative summation over `(count, workload)`.
+  - Rollup marginal distributions: computes workload per cluster, tasks per cluster, workload per type, and tasks per type.
+  - Documented viva concepts in code comments explaining Map, Shuffle/Sort, and Reduce correspondences to Exp 7 notes.
+- Built `SparkJobService`:
+  - Runs `analytics-spark` standalone fat JAR asynchronously via `ProcessBuilder` with required Java 17 `--add-opens` flags.
+  - Exports active tasks into temporary `cluster,type,workload` input file and reads structured JSON output.
+  - Mandatory Resilience: Automatically detects missing Spark JAR, process timeouts, or runtime failures and seamlessly falls back to `MapReduceFallbackService`, tagging `engine: streams-fallback` and `fallbackUsed: true`.
+  - Configurable via `drs.analytics.engine=spark|streams` in `application.properties`.
+  - Auto-seeds default disaster relief tasks if the task database is empty.
+  - Emits SSE events `compute`: `ANALYTICS_STARTED` and `ANALYTICS_DONE` via `EventPublisher`.
+- Built `AnalyticsRun` JPA entity and `AnalyticsRunRepository`:
+  - Persists each analytics run with execution duration, engine used, task count, total workload, status, and full result JSON.
+  - Queries `findAllByOrderByTimestampDesc()` and `findTopByOrderByTimestampDesc()`.
+- Built `AnalyticsController` (`POST /api/analytics/mapreduce/run`, `GET /api/analytics/mapreduce/latest`, `GET /api/analytics/mapreduce/history`, `POST /api/analytics/mapreduce/seed`).
+- Built Frontend Dashboard:
+  - `static/pages/analytics.html`, `static/analytics.html` (redirect), and `static/js/analytics.js`:
+    - Engine selector (Java Streams vs Apache Spark) and real-time engine badge (`SPARK`, `STREAMS`, `FALLBACK`).
+    - 'Run MapReduce' action button with interactive loading spinner.
+    - KPI cards: Total Tasks, Total Workload, Active Clusters, and Execution Duration.
+    - Responsive Chart.js Bar Chart displaying dual-axis Workload per Cluster and Task Count.
+    - Marginal distribution tables: Workload per Cluster (with progress share bars) and Tasks per Category.
+    - MapReduce Key-Value Buckets table showing `(Cluster|Type)` mapped counts and reduced workloads.
+    - Monospaced terminal execution step trace displaying Map emits, Shuffle grouping, and Reduce bucket outputs.
+    - H2-persisted Execution History table with run IDs, timestamps, engines, and durations.
+    - Live SSE compute event stream widget and offline mock mode compatibility (`?mock=1`, `mock/analytics_latest.json`, `mock/analytics_history.json`).
+- Unit & Integration Tests:
+  - `MapReduceFallbackServiceTest` (3 tests covering legacy dataset verification, empty task handling, and fallback tagging).
+  - `SparkJobServiceTest` (4 tests covering streams execution, missing jar fallback, empty repo auto-seeding, and latest run retrieval).
+  - `AnalyticsControllerTest` (4 MockMvc tests covering POST /run, GET /latest, GET /history, and POST /seed).
+- Peer Review & Teammate Handover:
+  - Ready for review by Vedant.
+  - Prasham/Grasit: Scenario runner can trigger `POST /api/analytics/mapreduce/run` in Phase 7.
 
 ### Day 4
 -

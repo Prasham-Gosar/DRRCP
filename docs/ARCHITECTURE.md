@@ -551,7 +551,7 @@ Temporary Day 1 endpoints (replaced by the `/api/nodes/...` ones on Day 2, do no
 |---|---|---|
 | `POST /api/tasks`, `GET /api/tasks`, `POST /api/tasks/{id}/assign`, `DELETE /api/tasks` | Rescue tasks | **built** (Day 2) |
 | `POST /api/loadbalancer/assign-all`, `GET /api/loadbalancer/nodes` | Exp6 | **built** (Day 2) |
-| `POST /api/analytics/mapreduce/run`, `GET /api/analytics/mapreduce/latest`, `GET /api/analytics/mapreduce/history` | Exp7 | planned (Day 3) |
+| \POST /api/analytics/mapreduce/run\, \GET /api/analytics/mapreduce/latest\, \GET /api/analytics/mapreduce/history\, \POST /api/analytics/mapreduce/seed\ | Exp7 | **built** (Day 3) |
 
 ### comm (Vedant)
 
@@ -780,3 +780,23 @@ All compute DTOs live in `com.drs.compute.model`.
   ]
 }
 ```
+
+
+### Exp 7 MapReduce Analytics Architecture (Day 3)
+
+The MapReduce analytics subsystem supports dual execution engines with mandatory resilience:
+1. **Apache Spark Subprocess (`SparkJobService`):**
+   - Configured via `drs.analytics.engine=spark`.
+   - Exports active rescue tasks to a temporary text file (`cluster,type,workload`).
+   - Invokes `analytics-spark` standalone fat JAR with Java 17 `--add-opens` flags using `ProcessBuilder`.
+   - Reads output JSON directly into `AnalyticsResult`.
+2. **Java Streams Fallback (`MapReduceFallbackService`):**
+   - Configured via `drs.analytics.engine=streams` or dynamically activated when Spark JAR is missing / process fails.
+   - Preserves exact MapReduce semantics:
+     - **Map Phase:** Maps `RescueTaskEntity` into `IntermediatePair(compositeKey='cluster|type', count=1, workload)`.
+     - **Shuffle & Sort Phase:** Groups by `compositeKey` into sorted `TreeMap` buckets.
+     - **Reduce Phase:** Associatively sums `count` and `workload` for each composite key bucket.
+     - **Marginal Distributions:** Aggregates marginal task counts and workloads per cluster and per task type.
+3. **Persistence & Observability:**
+   - Every execution is persisted into H2 via `AnalyticsRun` JPA entity (`id`, `timestamp`, `engine`, `durationMs`, `totalTasks`, `totalWorkload`, `status`, `resultJson`).
+   - Emits SSE events `ANALYTICS_STARTED` and `ANALYTICS_DONE` on the `compute` module.
