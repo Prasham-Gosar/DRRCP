@@ -7,17 +7,23 @@ runs all 10 DC experiments on a simulated post-disaster UAV/edge network.
 |---|---|
 | Stack | Java 17, Spring Boot 3.3.x (Maven), Spring Web + Data JPA, H2 file DB, SSE, static HTML/CSS/vanilla JS |
 | Team | Prasham (core), Grasit (consensus + fault tolerance), Parth (compute + Spark), Vedant (comm + frontend shell) |
-| Docs | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/PROGRESS.md`](docs/PROGRESS.md) |
+| Docs | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/PROGRESS.md`](docs/PROGRESS.md) · [`docs/EXPERIMENTS_6_7.md`](docs/EXPERIMENTS_6_7.md) |
 | Original console code | [`legacy/`](legacy) — kept untouched for reference |
 
 ## Run
 
 ```bash
-mvn spring-boot:run          # app on http://localhost:8080
-mvn test                     # all tests (use in-memory DB, never touch ./data)
+# Optional (Exp 7 Spark): build standalone analytics-spark fat JAR (one-time or if changing Spark job):
+cd analytics-spark && mvn clean package -DskipTests && cd ..
+
+# Run web app (runs on http://localhost:8080):
+mvn spring-boot:run
+
+# Run all automated tests:
+mvn test
 ```
 
-H2 console: http://localhost:8080/h2-console — JDBC URL `jdbc:h2:file:./data/drs`, user `sa`, empty password.
+H2 console: http://localhost:8080/h2-console — JDBC URL `jdbc:h2:file:./data/drs`, user `sa`, empty password.  
 Live events: http://localhost:8080/api/events (SSE) · history: `/api/events/history?limit=50`
 
 ## Git rules

@@ -302,7 +302,10 @@ public class LoadBalancerService {
     }
 
     /**
-     * Seeds legacy sample tasks (Medical, Food, Search...) in PENDING status.
+     * Seeds sample disaster tasks demonstrating visually dramatic load imbalance:
+     * - Cluster-A: 4 Search tasks (3, 4, 5, 6 units) = 18 units (Busiest Cluster)
+     * - Cluster-B: 3 Medical tasks (7, 7, 2 units) = 16 units (High-workload triage)
+     * - Cluster-C: 2 Food + 3 Search tasks (1, 1, 2, 3, 4 units) = 11 units
      */
     public List<RescueTaskEntity> seedSampleTasks() {
         if (taskRepository == null) {
@@ -310,14 +313,23 @@ public class LoadBalancerService {
         }
 
         List<RescueTaskEntity> samples = List.of(
-                new RescueTaskEntity("TASK-01", "Search for survivors in Sector 1", 3.0, "Cluster-A", "Search", "PENDING", null),
-                new RescueTaskEntity("TASK-02", "Inspect damaged school building", 2.0, "Cluster-A", "Search", "PENDING", null),
-                new RescueTaskEntity("TASK-03", "Deliver emergency medical supplies", 4.0, "Cluster-B", "Medical", "PENDING", null),
-                new RescueTaskEntity("TASK-04", "Air-drop ration packets to relief camp", 2.0, "Cluster-A", "Food", "PENDING", null),
-                new RescueTaskEntity("TASK-05", "Relay emergency radio comms", 3.0, "Cluster-B", "Search", "PENDING", null),
-                new RescueTaskEntity("TASK-06", "Thermal scan of collapsed warehouse", 2.0, "Cluster-C", "Search", "PENDING", null),
-                new RescueTaskEntity("TASK-07", "Transport trauma triage kit", 5.0, "Cluster-A", "Medical", "PENDING", null),
-                new RescueTaskEntity("TASK-08", "Water purification supply delivery", 3.0, "Cluster-B", "Food", "PENDING", null)
+                // Cluster-A: 18.0 workload total (Busiest Cluster)
+                new RescueTaskEntity("TASK-01", "Sector 1 survivor perimeter sweep", 3.0, "Cluster-A", "Search", "PENDING", null),
+                new RescueTaskEntity("TASK-02", "Sector 2 thermal infrared building scan", 4.0, "Cluster-A", "Search", "PENDING", null),
+                new RescueTaskEntity("TASK-03", "Sector 3 collapsed structure acoustic probe", 5.0, "Cluster-A", "Search", "PENDING", null),
+                new RescueTaskEntity("TASK-04", "Sector 4 drone grid search & rescue", 6.0, "Cluster-A", "Search", "PENDING", null),
+
+                // Cluster-B: 16.0 workload total (High urgency medical with two workload >= 7 tasks)
+                new RescueTaskEntity("TASK-05", "Field trauma surgical supplies emergency airlift", 7.0, "Cluster-B", "Medical", "PENDING", null),
+                new RescueTaskEntity("TASK-06", "Mass casualty emergency blood & saline delivery", 7.0, "Cluster-B", "Medical", "PENDING", null),
+                new RescueTaskEntity("TASK-07", "First-aid burn dressing and triage kits", 2.0, "Cluster-B", "Medical", "PENDING", null),
+
+                // Cluster-C: 11.0 workload total (Food rations + Search)
+                new RescueTaskEntity("TASK-08", "Clean water purification tablets & packets", 1.0, "Cluster-C", "Food", "PENDING", null),
+                new RescueTaskEntity("TASK-09", "High-calorie survival rations air-drop", 1.0, "Cluster-C", "Food", "PENDING", null),
+                new RescueTaskEntity("TASK-10", "River levee breach reconnaissance sweep", 2.0, "Cluster-C", "Search", "PENDING", null),
+                new RescueTaskEntity("TASK-11", "Submerged transport route sonar scan", 3.0, "Cluster-C", "Search", "PENDING", null),
+                new RescueTaskEntity("TASK-12", "Night-vision outer perimeter survivor check", 4.0, "Cluster-C", "Search", "PENDING", null)
         );
 
         List<RescueTaskEntity> created = new ArrayList<>();
@@ -333,7 +345,7 @@ public class LoadBalancerService {
             }
         }
 
-        log.info("Seeded {} legacy sample rescue tasks", created.size());
+        log.info("Seeded {} disaster relief sample rescue tasks showing load imbalance", created.size());
         return created;
     }
 

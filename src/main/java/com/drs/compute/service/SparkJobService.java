@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Service managing distributed MapReduce execution via Apache Spark subprocess
@@ -36,6 +37,9 @@ public class SparkJobService {
     private final MapReduceFallbackService fallbackService;
     private final EventPublisher eventPublisher;
     private final ObjectMapper mapper;
+
+    /** Guards against concurrent analytics executions. */
+    private final AtomicBoolean analyticsRunning = new AtomicBoolean(false);
 
     @Value("${drs.analytics.engine:streams}")
     private String defaultEngine;
@@ -73,46 +77,53 @@ public class SparkJobService {
      * @return structured {@link AnalyticsResult}
      */
     public AnalyticsResult runAnalytics(String requestedEngine) {
-        long overallStart = System.currentTimeMillis();
-        String engine = (requestedEngine != null && !requestedEngine.isBlank())
-                ? requestedEngine.trim().toLowerCase()
-                : defaultEngine.toLowerCase();
-
-        // 1. Retrieve current tasks or seed defaults if database is empty
-        List<RescueTaskEntity> tasks = getOrSeedTasks();
-
-        // 2. Publish ANALYTICS_STARTED event
-        if (eventPublisher != null) {
-            Map<String, Object> startPayload = new LinkedHashMap<>();
-            startPayload.put("engine", engine);
-            startPayload.put("taskCount", tasks.size());
-            startPayload.put("timestamp", Instant.now().toString());
-            eventPublisher.publish("compute", "ANALYTICS_STARTED", startPayload);
+        if (!analyticsRunning.compareAndSet(false, true)) {
+            throw new IllegalStateException("Analytics computation is already running. Please wait for the current run to finish.");
         }
+        try {
+            long overallStart = System.currentTimeMillis();
+            String engine = (requestedEngine != null && !requestedEngine.isBlank())
+                    ? requestedEngine.trim().toLowerCase()
+                    : defaultEngine.toLowerCase();
 
-        AnalyticsResult result;
+            // 1. Retrieve current tasks or seed defaults if database is empty
+            List<RescueTaskEntity> tasks = getOrSeedTasks();
 
-        // 3. Execute requested engine
-        if ("spark".equalsIgnoreCase(engine)) {
-            result = attemptSparkExecution(tasks, overallStart);
-        } else {
-            result = fallbackService.computeAnalytics(
-                    tasks,
-                    "In-Memory Java Streams Engine (rescue_tasks)",
-                    -1,
-                    false
-            );
+            // 2. Publish ANALYTICS_STARTED event
+            if (eventPublisher != null) {
+                Map<String, Object> startPayload = new LinkedHashMap<>();
+                startPayload.put("engine", engine);
+                startPayload.put("taskCount", tasks.size());
+                startPayload.put("timestamp", Instant.now().toString());
+                eventPublisher.publish("compute", "ANALYTICS_STARTED", startPayload);
+            }
+
+            AnalyticsResult result;
+
+            // 3. Execute requested engine
+            if ("spark".equalsIgnoreCase(engine)) {
+                result = attemptSparkExecution(tasks, overallStart);
+            } else {
+                result = fallbackService.computeAnalytics(
+                        tasks,
+                        "In-Memory Java Streams Engine (rescue_tasks)",
+                        -1,
+                        false
+                );
+            }
+
+            // 4. Persist run to database
+            persistRun(result);
+
+            // 5. Publish ANALYTICS_DONE event
+            if (eventPublisher != null) {
+                eventPublisher.publish("compute", "ANALYTICS_DONE", result);
+            }
+
+            return result;
+        } finally {
+            analyticsRunning.set(false);
         }
-
-        // 4. Persist run to database
-        persistRun(result);
-
-        // 5. Publish ANALYTICS_DONE event
-        if (eventPublisher != null) {
-            eventPublisher.publish("compute", "ANALYTICS_DONE", result);
-        }
-
-        return result;
     }
 
     /**
