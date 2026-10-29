@@ -27,7 +27,8 @@
     { id: 'matrix', label: 'Parallel Matrix', icon: '🧮', path: '/pages/matrix.html', aliases: ['/matrix.html', '/pages/matrix.html'], badge: 'Exp 10' },
 
     { section: 'System Verification' },
-    { id: 'scenario', label: 'Scenario Runner', icon: '🚀', path: '/pages/scenario.html', badge: 'Full Story' }
+    { id: 'scenario', label: 'Scenario Runner', icon: '🚀', path: '/pages/scenario.html', badge: 'Full Story' },
+    { id: 'about', label: 'About & Experiments', icon: '📖', path: '/about.html', aliases: ['/about.html', '/pages/about.html'], badge: '10 Exps' }
   ];
 
   // Helper to determine active route
@@ -227,14 +228,71 @@
     }
   }
 
+  // Automatically subscribe to critical distributed events for global toasts
+  function registerGlobalToasts() {
+    if (!window.events || window.__drs_global_toasts_registered) return;
+    window.__drs_global_toasts_registered = true;
+
+    // 1. NODE_SILENT (Exp 2 Heartbeats)
+    window.events.on('core', 'NODE_SILENT', (payload) => {
+      const id = payload?.nodeId || payload?.id || 'Edge-01';
+      if (window.toast) {
+        window.toast.warning('Node Silent Alert', `Node ${id} failed heartbeat check! Flagged for rescue inspection.`);
+      }
+    });
+
+    // 2. LEADER_ELECTED (Exp 4 Consensus)
+    window.events.on('consensus', 'LEADER_ELECTED', (payload) => {
+      const algo = payload?.algorithm || 'Consensus';
+      const leader = payload?.leaderId || payload?.id || 'Leader';
+      const cluster = payload?.clusterId || 'Cluster-A';
+      if (window.toast) {
+        window.toast.info('Leader Elected', `${algo} elected ${leader} as coordinator for ${cluster}.`);
+      }
+    });
+
+    // 3. RECONCILED (Exp 5 CRDT)
+    window.events.on('consensus', 'RECONCILED', (payload) => {
+      const count = payload?.totalUpdates || (Array.isArray(payload?.resolutions) ? payload.resolutions.length : 'All');
+      const conflicts = payload?.conflictsDetected !== undefined ? payload.conflictsDetected : 0;
+      if (window.toast) {
+        window.toast.success('CRDT State Reconciled', `Reconciled ${count} updates via vector clocks (${conflicts} conflicts resolved).`);
+      }
+    });
+
+    // 4. FT_BACKUP_PROMOTED (Exp 8 Primary-Backup Failover)
+    window.events.on('ft', 'FT_BACKUP_PROMOTED', (payload) => {
+      const backup = payload?.backupId || 'Backup-01';
+      if (window.toast) {
+        window.toast.error('Coordinator Failover', `Primary coordinator crashed! Hot-standby ${backup} promoted to active Primary.`);
+      }
+    });
+
+    // 5. NETWORK_PARTITIONED (Exp 3 Topology Isolation)
+    window.events.on('core', 'NETWORK_PARTITIONED', () => {
+      if (window.toast) {
+        window.toast.warning('Network Partitioned', 'Cluster isolation triggered. Local leader election required.');
+      }
+    });
+
+    // 6. NETWORK_HEALED (Exp 3 Inter-cluster reconnection)
+    window.events.on('core', 'NETWORK_HEALED', () => {
+      if (window.toast) {
+        window.toast.success('Network Partition Healed', 'Inter-cluster connectivity restored. Reconciling states...');
+      }
+    });
+  }
+
   // Initialize on DOM Ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       initToastContainer();
       injectShell();
+      registerGlobalToasts();
     });
   } else {
     initToastContainer();
     injectShell();
+    registerGlobalToasts();
   }
 })();
