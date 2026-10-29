@@ -183,8 +183,28 @@ One section per person per day. Update yours in every PR.
   - Ready for review by Vedant.
   - Handover to Prasham: `clusterTaskService.generateAndAssignPartitionedTasks()` is available for Phase 5 of `ScenarioRunner`.
 
-### Day 5
--
+### Day 5 — Hardening, Edge Cases, Demo Seed Data & Viva Documentation
+- Hardened Compute & Analytics Services:
+  - Added concurrent execution protection to SparkJobService with atomic guard rejecting overlapping runs with HTTP 409 Conflict.
+  - Added @ExceptionHandler(IllegalStateException.class) in AnalyticsController returning structured JSON error payloads.
+  - Hardened MapReduceFallbackService and LoadBalancerService against edge inputs: empty task list, zero/negative task workloads, all candidate nodes unavailable, and zero effective capacity.
+  - Defensive load balancing: unassignable tasks remain safely in PENDING state and return structured failure traces rather than throwing uncaught errors.
+- Dynamic Imbalance Demo Seed Data:
+  - Replaced legacy 8-task sample set in LoadBalancerService.seedSampleTasks() with a 12-task dataset exhibiting clear, visually dramatic load imbalance:
+    - Cluster-A: 4 Search tasks totaling 18.0 units (dynamically detected as Busiest Cluster on dashboard).
+    - Cluster-B: 3 Medical emergency tasks totaling 16.0 units (with two high-workload 7.0 unit trauma tasks).
+    - Cluster-C: 2 Food ration + 3 Search tasks totaling 11.0 units.
+- Comprehensive Technical Documentation (docs/EXPERIMENTS_6_7.md):
+  - Experiment 6: Mathematical formulation of effective capacity, candidate filtering, lowest projected utilization, tie-breaking, code map, UI walkthrough, and 5 viva questions & answers.
+  - Experiment 7: Distributed MapReduce programming model (Map, Shuffle & Sort, Reduce, Rollup), subprocess architecture with Java 17 --add-opens flags, mandatory Streams fallback path, code map, UI walkthrough, and 5 viva questions & answers.
+  - Building & Deployment: standalone Spark fat JAR compilation commands and pplication.properties configuration instructions.
+- Unit & Edge Case Test Suite:
+  - Created LoadBalancerEdgeCaseTest (5 tests covering all nodes unavailable, all nodes depleted, huge workload 9999.0, zero tasks in database, and batch assign-all failure preservation).
+  - Enhanced MapReduceFallbackServiceTest with single-task breakdown test and defensive clamping test for zero/negative workloads.
+  - Enhanced SparkJobServiceTest with concurrent run rejection test.
+  - Enhanced AnalyticsControllerTest with HTTP 409 Conflict MockMvc test.
+- Peer Review & Release Handover:
+  - Branch eature/parth-qa-docs ready for final PR review by Vedant. All Compute & Analytics capabilities fully verified and hardened for v1.0 release.
 
 ## Vedant (comm, frontend shell)
 
