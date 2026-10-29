@@ -16,6 +16,8 @@ public interface RescueTaskRepository extends JpaRepository<RescueTaskEntity, St
 
     List<RescueTaskEntity> findByClusterId(String clusterId);
 
+    List<RescueTaskEntity> findByClusterIdAndStatus(String clusterId, String status);
+
     List<RescueTaskEntity> findByAssignedNodeId(String assignedNodeId);
 
     List<RescueTaskEntity> findByType(String type);

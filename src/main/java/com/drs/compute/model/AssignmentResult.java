@@ -16,6 +16,8 @@ public class AssignmentResult implements Serializable {
     private double workload;
     private boolean success;
     private String chosenNodeId;
+    private String clusterId;
+    private String assignedByLeaderId;
     private Double updatedLoad;
     private Double effectiveCapacity;
     private Double finalUtilization;
@@ -70,6 +72,22 @@ public class AssignmentResult implements Serializable {
 
     public void setChosenNodeId(String chosenNodeId) {
         this.chosenNodeId = chosenNodeId;
+    }
+
+    public String getClusterId() {
+        return clusterId;
+    }
+
+    public void setClusterId(String clusterId) {
+        this.clusterId = clusterId;
+    }
+
+    public String getAssignedByLeaderId() {
+        return assignedByLeaderId;
+    }
+
+    public void setAssignedByLeaderId(String assignedByLeaderId) {
+        this.assignedByLeaderId = assignedByLeaderId;
     }
 
     public Double getUpdatedLoad() {
