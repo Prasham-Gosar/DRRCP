@@ -37,8 +37,19 @@ public class MatrixService {
 
     private final EventPublisher eventPublisher;
 
+    private volatile double globalBestSpeedup = 0.0;
+    private volatile MatrixResult latestResult = null;
+
     public MatrixService(EventPublisher eventPublisher) {
         this.eventPublisher = eventPublisher;
+    }
+
+    public double getGlobalBestSpeedup() {
+        return globalBestSpeedup > 0.0 ? globalBestSpeedup : 1.0;
+    }
+
+    public MatrixResult getLatestResult() {
+        return latestResult;
     }
 
     /**
@@ -105,6 +116,11 @@ public class MatrixService {
 
         // 6. Extract top-left sample matrix (up to 4x4)
         result.setSampleResult(extractSample(parallelC, n, 4));
+
+        if (speedup > globalBestSpeedup) {
+            globalBestSpeedup = speedup;
+        }
+        latestResult = result;
 
         // 7. Publish live SSE event
         publishMatrixEvent(result);
@@ -189,6 +205,10 @@ public class MatrixService {
 
         sweepResult.setBestThreads(bestThreads);
         sweepResult.setBestSpeedup(bestSpeedup);
+
+        if (bestSpeedup > globalBestSpeedup) {
+            globalBestSpeedup = bestSpeedup;
+        }
 
         // Publish live SSE event for sweep completion
         eventPublisher.publish("comm", "MATRIX_DONE", Map.of(
