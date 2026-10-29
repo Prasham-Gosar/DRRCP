@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Parallel Matrix Multiplication (Exp 10) — DRS Web Edition</title>
   
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="/css/app.css">
   <style>
     /* ── Experiment 10 Styles ── */
@@ -121,10 +122,10 @@
   <div id="app-layout">
     <!-- Sidebar dynamically injected by layout.js -->
 
-    <div id="main-wrapper">
+    <div id="main-wrapper" tabindex="-1">
       <div id="header-mount"></div>
 
-      <main class="content-container">
+      <main class="content-container" id="main-content" aria-label="Parallel Matrix Multiplication Experiment 10">
         
         <!-- Page Header -->
         <div class="page-header">
@@ -166,10 +167,10 @@
                 
                 <div class="form-group mb-4">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <label class="form-label" for="input-n" style="margin-bottom: 0;">Dimension (N x N)</label>
+                    <label class="form-label" for="input-n-slider" style="margin-bottom: 0;">Dimension (N x N)</label>
                     <span id="label-n" class="font-mono" style="font-size: 0.8rem; font-weight: 700; color: #2563eb;">400 x 400</span>
                   </div>
-                  <input type="range" id="input-n-slider" min="50" max="800" step="50" value="400" style="width: 100%; cursor: pointer;">
+                  <input type="range" id="input-n-slider" min="50" max="800" step="50" value="400" aria-label="Matrix Dimension Slider" style="width: 100%; cursor: pointer;">
                   <div style="display: flex; gap: 6px; margin-top: 6px;">
                     <button type="button" class="btn-preset" data-n="100">100 (Quick)</button>
                     <button type="button" class="btn-preset" data-n="300">300 (Medium)</button>

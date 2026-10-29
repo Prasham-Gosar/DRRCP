@@ -147,8 +147,11 @@
           ${navHtml}
         </nav>
         <div class="sidebar-footer">
-          <div>Distributed Computing • Team 4</div>
-          <div style="font-size: 0.7rem; color: #475569; margin-top: 2px;">Spring Boot 3.3 • SSE Active</div>
+          <div>Disaster Relief &amp; Rescue Platform</div>
+          <div style="margin-top: 3px;">
+            <span class="brand-version-pill">v1.0</span>
+          </div>
+          <div style="font-size: 0.7rem; color: #475569; margin-top: 4px;">DC Team 4 · Spring Boot 3.3 · SSE</div>
         </div>
       </aside>
     `;
@@ -178,6 +181,25 @@
         </div>
       </header>
     `;
+
+    // Inject Favicon if missing
+    if (!document.querySelector('link[rel="icon"]')) {
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/svg+xml';
+      link.href = '/favicon.svg';
+      document.head.appendChild(link);
+    }
+
+    // Inject Skip to Content Link for keyboard accessibility
+    if (!document.getElementById('skip-to-content-link')) {
+      const skipLink = document.createElement('a');
+      skipLink.id = 'skip-to-content-link';
+      skipLink.href = '#main-content';
+      skipLink.className = 'skip-to-content';
+      skipLink.textContent = 'Skip to main content';
+      document.body.insertAdjacentElement('afterbegin', skipLink);
+    }
 
     // Inject into DOM
     const sidebarContainer = document.getElementById('sidebar-mount');
