@@ -23,6 +23,7 @@ public class RescueTaskEntity implements Serializable {
     private String type;             // e.g. "Medical", "Food", "Search"
     private String status;           // "PENDING", "ASSIGNED"
     private String assignedNodeId;
+    private String assignedByLeaderId; // Node ID of the cluster leader that performed the assignment
     private Instant createdAt;
     private Instant assignedAt;
 
@@ -42,6 +43,13 @@ public class RescueTaskEntity implements Serializable {
         if ("ASSIGNED".equalsIgnoreCase(status) && assignedNodeId != null) {
             this.assignedAt = Instant.now();
         }
+    }
+
+    public RescueTaskEntity(String taskId, String description, double workload,
+                            String clusterId, String type, String status,
+                            String assignedNodeId, String assignedByLeaderId) {
+        this(taskId, description, workload, clusterId, type, status, assignedNodeId);
+        this.assignedByLeaderId = assignedByLeaderId;
     }
 
     public String getTaskId() {
@@ -101,6 +109,14 @@ public class RescueTaskEntity implements Serializable {
 
     public void setAssignedNodeId(String assignedNodeId) {
         this.assignedNodeId = assignedNodeId;
+    }
+
+    public String getAssignedByLeaderId() {
+        return assignedByLeaderId;
+    }
+
+    public void setAssignedByLeaderId(String assignedByLeaderId) {
+        this.assignedByLeaderId = assignedByLeaderId;
     }
 
     public Instant getCreatedAt() {

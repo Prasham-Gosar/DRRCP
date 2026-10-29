@@ -341,6 +341,13 @@ public class LoadBalancerService {
      * Returns all rescue tasks, optionally filtered by status and clusterId.
      */
     public List<RescueTaskEntity> getAllTasks(String status, String clusterId) {
+        return getAllTasks(status, clusterId, null);
+    }
+
+    /**
+     * Returns all rescue tasks, optionally filtered by status, clusterId, and type.
+     */
+    public List<RescueTaskEntity> getAllTasks(String status, String clusterId, String type) {
         if (taskRepository == null) {
             return Collections.emptyList();
         }
@@ -357,6 +364,12 @@ public class LoadBalancerService {
                     .collect(Collectors.toList());
         }
 
+        if (type != null && !type.isBlank()) {
+            list = list.stream()
+                    .filter(t -> type.equalsIgnoreCase(t.getType()))
+                    .collect(Collectors.toList());
+        }
+
         // Sort: PENDING first, then by taskId
         list.sort(Comparator.comparing((RescueTaskEntity t) -> "PENDING".equalsIgnoreCase(t.getStatus()) ? 0 : 1)
                 .thenComparing(RescueTaskEntity::getTaskId));
@@ -364,12 +377,13 @@ public class LoadBalancerService {
     }
 
     /**
-     * Deletes all tasks from repository.
+     * Deletes all tasks from repository and resets node simulation loads.
      */
     public void deleteAllTasks() {
         if (taskRepository != null) {
             taskRepository.deleteAll();
             log.info("Cleared all rescue tasks from database");
         }
+        resetNodes();
     }
 }

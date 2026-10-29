@@ -2,6 +2,7 @@ package com.drs.compute.controller;
 
 import com.drs.compute.model.AssignmentResult;
 import com.drs.compute.model.RescueTaskEntity;
+import com.drs.compute.service.ClusterTaskService;
 import com.drs.compute.service.LoadBalancerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,17 +13,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * REST controller for Rescue Task operations and single-task assignment (Exp 6).
+ * REST controller for Rescue Task operations, single-task assignment (Exp 6),
+ * and cluster-partitioned leader pipeline orchestration (Day 4).
  */
 @RestController
 @RequestMapping("/api/tasks")
 public class TaskController {
 
     private final LoadBalancerService loadBalancerService;
+    private final ClusterTaskService clusterTaskService;
 
     @Autowired
-    public TaskController(LoadBalancerService loadBalancerService) {
+    public TaskController(LoadBalancerService loadBalancerService,
+                          ClusterTaskService clusterTaskService) {
         this.loadBalancerService = loadBalancerService;
+        this.clusterTaskService = clusterTaskService;
     }
 
     public record CreateTaskRequest(
@@ -62,13 +67,16 @@ public class TaskController {
 
     /**
      * GET /api/tasks
-     * Returns all rescue tasks, optionally filtered by status and clusterId.
+     * Returns all rescue tasks, with flexible filtering by status, cluster (cluster/clusterId), and category type.
      */
     @GetMapping
     public List<RescueTaskEntity> getTasks(
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String clusterId) {
-        return loadBalancerService.getAllTasks(status, clusterId);
+            @RequestParam(required = false) String cluster,
+            @RequestParam(required = false) String clusterId,
+            @RequestParam(required = false) String type) {
+        String effectiveCluster = (cluster != null && !cluster.isBlank()) ? cluster : clusterId;
+        return loadBalancerService.getAllTasks(status, effectiveCluster, type);
     }
 
     /**
@@ -96,13 +104,34 @@ public class TaskController {
     }
 
     /**
+     * POST /api/tasks/pipeline/partitioned
+     * Generates and assigns rescue tasks across partitioned clusters under their elected leaders (Day 4 Pipeline).
+     */
+    @PostMapping("/pipeline/partitioned")
+    public ResponseEntity<List<AssignmentResult>> generateAndAssignPartitionedTasks() {
+        List<AssignmentResult> results = clusterTaskService.generateAndAssignPartitionedTasks();
+        return ResponseEntity.ok(results);
+    }
+
+    /**
+     * GET /api/tasks/pipeline/summary
+     * Returns an aggregated status of tasks, workloads, and cluster leaders in the pipeline.
+     */
+    @GetMapping("/pipeline/summary")
+    public ResponseEntity<Map<String, Object>> getPipelineSummary() {
+        return ResponseEntity.ok(clusterTaskService.getPipelineSummary());
+    }
+
+    /**
      * DELETE /api/tasks
-     * Clears all tasks from database.
+     * Clears all tasks from database and resets candidate node loads for scenario reset.
      */
     @DeleteMapping
     public ResponseEntity<Map<String, String>> clearTasks() {
         loadBalancerService.deleteAllTasks();
-        return ResponseEntity.ok(Map.of("message", "All rescue tasks deleted successfully"));
+        return ResponseEntity.ok(Map.of(
+                "status", "SUCCESS",
+                "message", "All rescue tasks deleted and simulation reset successfully"
+        ));
     }
 }
-

@@ -549,7 +549,7 @@ Temporary Day 1 endpoints (replaced by the `/api/nodes/...` ones on Day 2, do no
 
 | Endpoint | Purpose | Status |
 |---|---|---|
-| `POST /api/tasks`, `GET /api/tasks`, `POST /api/tasks/{id}/assign`, `DELETE /api/tasks` | Rescue tasks | **built** (Day 2) |
+| `POST /api/tasks`, `GET /api/tasks?cluster=&status=&type=`, `POST /api/tasks/{id}/assign`, `DELETE /api/tasks`, `POST /api/tasks/pipeline/partitioned`, `GET /api/tasks/pipeline/summary` | Rescue tasks & Day 4 partition pipeline | **built** (Day 4) |
 | `POST /api/loadbalancer/assign-all`, `GET /api/loadbalancer/nodes` | Exp6 | **built** (Day 2) |
 | \POST /api/analytics/mapreduce/run\, \GET /api/analytics/mapreduce/latest\, \GET /api/analytics/mapreduce/history\, \POST /api/analytics/mapreduce/seed\ | Exp7 | **built** (Day 3) |
 
@@ -800,3 +800,17 @@ The MapReduce analytics subsystem supports dual execution engines with mandatory
 3. **Persistence & Observability:**
    - Every execution is persisted into H2 via `AnalyticsRun` JPA entity (`id`, `timestamp`, `engine`, `durationMs`, `totalTasks`, `totalWorkload`, `status`, `resultJson`).
    - Emits SSE events `ANALYTICS_STARTED` and `ANALYTICS_DONE` on the `compute` module.
+
+
+### Day 4: Task Pipeline & Leader Allocation Architecture
+
+During disaster simulation network partitions, tasks cannot reach a global coordinator:
+1. **Partitioned Routing:**
+   - Rescue tasks arrive independently in `Cluster-A` and `Cluster-B`.
+   - Each cluster queries its locally elected leader using Grasit's `LeaderProvider.currentLeader(clusterId)` (e.g. `UAV-02` for Cluster-A, `Edge-01` for Cluster-B).
+2. **Local Load Balancing:**
+   - Tasks are dispatched strictly to candidate nodes within the leader's own cluster partition.
+   - Tasks are marked with `assignedByLeaderId` to maintain allocation provenance.
+   - Dispatches live `TASK_ASSIGNED` SSE events containing the leader attribution.
+3. **Post-Healing MapReduce:**
+   - Once network partitions heal, `SparkJobService` or `MapReduceFallbackService` executes across the entire aggregated set of tasks across all clusters.

@@ -150,8 +150,38 @@ One section per person per day. Update yours in every PR.
   - Ready for review by Vedant.
   - Prasham/Grasit: Scenario runner can trigger `POST /api/analytics/mapreduce/run` in Phase 7.
 
-### Day 4
--
+### Day 4 — Task Pipeline & Finished Analytics Dashboard
+- Built `ClusterTaskService`:
+  - Implemented end-to-end task pipeline orchestration for the network partition scenario.
+  - Generates partitioned disaster rescue tasks for Cluster-A and Cluster-B.
+  - Queries Grasit's `LeaderProvider.currentLeader(clusterId)` to route task dispatch through the elected local leaders (`UAV-02` for Cluster-A, `Edge-01` for Cluster-B) with robust fallback.
+  - Constrains task allocation strictly to candidate nodes within the local cluster partition using effective-capacity load balancing.
+  - Provided `generateAndAssignPartitionedTasks()` hook for Prasham's `ScenarioRunner` (Phase 5).
+  - Emits live `TASK_ASSIGNED` SSE events on `compute` module with `assignedByLeaderId`, `clusterId`, `workload`, and step traces.
+- Enhanced Task Model & Repository:
+  - Added `assignedByLeaderId` to `RescueTaskEntity` and `AssignmentResult` to track leader dispatch provenance.
+  - Added `findByClusterIdAndStatus` query to `RescueTaskRepository`.
+- Enhanced `TaskController` & `LoadBalancerService`:
+  - Added flexible filtering to `GET /api/tasks` supporting `cluster` / `clusterId`, `status`, and `type`.
+  - Added `DELETE /api/tasks` endpoint to clear all tasks and reset candidate node loads during scenario reset.
+  - Exposed `POST /api/tasks/pipeline/partitioned` and `GET /api/tasks/pipeline/summary` for interactive scenario runs.
+- Finished `analytics.html` & `analytics.js` Dashboard:
+  - KPI Cards: Total Tasks (assigned/pending), Total Workload, Busiest Cluster (dynamically detected bottleneck partition with workload metric), and Execution Latency.
+  - Action Controls: Run MapReduce, Run Partitioned Pipeline (Exp 6+7), Seed Sample Tasks, and Reset Tasks.
+  - Dual Visualizations:
+    1. Cluster Workload & Task Distribution (Chart.js Bar Chart).
+    2. Tasks-Over-Time Progression (Chart.js Line Chart tracking chronological task arrival and cumulative workload).
+  - Interactive Filter Panel: Filter tasks by Cluster, Disaster Category, Status, or free-text search.
+  - Task Assignment Directory with Client-Side Pagination (configurable 5/10/20 rows per page, prev/next controls, page info).
+  - Node Allocation Linking: Clickable pill badge linking each assigned task directly to its assigned node in the Load Balancer view (`/pages/loadbalancer.html?node=...`).
+  - Leader Attribution Badges: Prominently identifies which elected leader dispatched each task (`👑 UAV-02` / `👑 Edge-01`).
+  - Live SSE feed and execution terminal displaying pipeline routes and MapReduce shuffle/reduce logs.
+- Unit & MockMvc Tests:
+  - `ClusterTaskServiceTest` (3 comprehensive unit tests verifying partitioned routing, leader attribution, fallback leaders, and summary statistics).
+  - `TaskControllerTest` (updated with 6 MockMvc tests covering filtering by cluster/status, DELETE reset, and partitioned pipeline endpoints).
+- Peer Review & Handover:
+  - Ready for review by Vedant.
+  - Handover to Prasham: `clusterTaskService.generateAndAssignPartitionedTasks()` is available for Phase 5 of `ScenarioRunner`.
 
 ### Day 5
 -

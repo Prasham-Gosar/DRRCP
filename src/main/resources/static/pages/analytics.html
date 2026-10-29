@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MapReduce Analytics — DRS Web Edition</title>
+  <title>MapReduce Analytics & Task Pipeline — DRS Web Edition</title>
 
   <!-- Core Design System -->
   <link rel="stylesheet" href="/css/app.css">
@@ -39,11 +39,63 @@
     }
     .chart-container-analytics {
       position: relative;
-      height: 320px;
+      height: 300px;
       width: 100%;
     }
     .breakdown-table th, .breakdown-table td {
       font-size: 0.875rem;
+    }
+    .node-link-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      color: #0f172a;
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: all 0.15s ease-in-out;
+    }
+    .node-link-pill:hover {
+      background: #e2e8f0;
+      border-color: #94a3b8;
+      color: #1d4ed8;
+      text-decoration: none;
+    }
+    .badge-leader {
+      background: #f3e8ff;
+      color: #7e22ce;
+      border: 1px solid #d8b4fe;
+      font-weight: 600;
+    }
+    .pagination-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-color, #e2e8f0);
+    }
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-panel {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .filter-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
     }
   </style>
 </head>
@@ -61,20 +113,26 @@
         <div class="page-header">
           <div>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-              <h1 class="page-title" style="margin: 0;">MapReduce Task Analytics</h1>
+              <h1 class="page-title" style="margin: 0;">Task Pipeline & MapReduce Analytics</h1>
               <span id="active-engine-badge" class="badge engine-badge-streams">ENGINE: STREAMS</span>
-              <span id="spark-status-indicator" class="badge badge-info">EXP 7 LIVE</span>
+              <span id="pipeline-status-badge" class="badge badge-green">EXP 6+7 INTEGRATED</span>
             </div>
             <p class="page-description">
-              Distributed MapReduce task aggregation for disaster relief operations. Runs Apache Spark via async subprocess,
-              with automated Java Streams fallback for student laptops and resilient execution.
+              Distributed task orchestration across disaster partitions. Elected cluster leaders assign rescue tasks
+              locally by effective capacity (Exp 6), and MapReduce/Spark aggregates full-mission telemetry post-healing (Exp 7).
             </p>
           </div>
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <button id="btn-seed-tasks" class="btn btn-outline" title="Reset and seed sample disaster rescue tasks">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button id="btn-run-pipeline" class="btn btn-outline" style="border-color: #7c3aed; color: #7c3aed;" title="Simulate partitioned tasks arriving in Cluster-A and Cluster-B and leader-based allocation">
+              🚀 Run Partitioned Pipeline
+            </button>
+            <button id="btn-seed-tasks" class="btn btn-outline" title="Reset and seed default sample tasks">
               🌱 Seed Tasks
             </button>
-            <button id="btn-run-analytics" class="btn btn-primary" style="min-width: 170px;">
+            <button id="btn-reset-tasks" class="btn btn-outline" style="color: #ef4444;" title="Clear all tasks and reset node loads">
+              🗑️ Reset
+            </button>
+            <button id="btn-run-analytics" class="btn btn-primary" style="min-width: 175px;">
               <span id="run-spinner" class="spinner" style="display: none;"></span>
               <span id="run-btn-text">⚡ Run MapReduce</span>
             </button>
@@ -90,8 +148,8 @@
             </div>
             <div class="kpi-value" id="kpi-total-tasks">0</div>
             <div class="kpi-meta">
-              <span class="badge badge-blue">RESCUE OPS</span>
-              <span>Disaster zone tasks</span>
+              <span class="badge badge-blue" id="kpi-assigned-badge">0 ASSIGNED</span>
+              <span id="kpi-pending-sub">0 pending</span>
             </div>
           </div>
 
@@ -103,66 +161,66 @@
             <div class="kpi-value" id="kpi-total-workload">0.0</div>
             <div class="kpi-meta">
               <span class="badge badge-green">AGGREGATED</span>
-              <span>Cumulative task weight</span>
+              <span>Cumulative mission load</span>
             </div>
           </div>
 
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-title">Active Clusters</span>
-              <div class="kpi-icon-wrap" style="background:#fffbeb; color:#d97706;">🌐</div>
+              <span class="kpi-title">Busiest Cluster</span>
+              <div class="kpi-icon-wrap" style="background:#fffbeb; color:#d97706;">🔥</div>
             </div>
-            <div class="kpi-value" id="kpi-active-clusters">0</div>
+            <div class="kpi-value" id="kpi-busiest-cluster" style="font-size: 1.45rem;">--</div>
             <div class="kpi-meta">
-              <span class="badge badge-amber" id="kpi-cluster-badge">PARTITIONS</span>
-              <span>Data partition nodes</span>
+              <span class="badge badge-amber" id="kpi-busiest-meta">MAX WORKLOAD</span>
+              <span id="kpi-busiest-sub">Sector bottleneck</span>
             </div>
           </div>
 
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-title">Execution Time</span>
+              <span class="kpi-title">Execution Latency</span>
               <div class="kpi-icon-wrap" style="background:#f5f3ff; color:#7c3aed;">⏱️</div>
             </div>
             <div class="kpi-value" id="kpi-duration">0 ms</div>
             <div class="kpi-meta">
-              <span class="badge badge-info" id="kpi-engine-mode">LOCAL</span>
-              <span>Map + Reduce latency</span>
+              <span class="badge badge-info" id="kpi-engine-mode">STREAMS</span>
+              <span>MapReduce processing</span>
             </div>
           </div>
         </div>
 
-        <!-- Controls & Mode Selector Row -->
+        <!-- Engine & Settings Bar -->
         <div class="card mb-6">
           <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
             <div style="display: flex; align-items: center; gap: 15px;">
-              <label style="font-weight: 600; font-size: 0.9rem; color: #374151;">Compute Engine:</label>
+              <label style="font-weight: 600; font-size: 0.9rem; color: #374151;">MapReduce Engine:</label>
               <div style="display: flex; gap: 8px;">
                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.875rem;">
                   <input type="radio" name="engineSelect" value="streams" checked>
-                  <span>Java Streams (Fast, In-Memory)</span>
+                  <span>Java Streams (In-Memory, Reliable)</span>
                 </label>
                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.875rem; margin-left: 12px;">
                   <input type="radio" name="engineSelect" value="spark">
-                  <span>Apache Spark (Subprocess with Fallback)</span>
+                  <span>Apache Spark Subprocess (with Fallback)</span>
                 </label>
               </div>
             </div>
             <div style="font-size: 0.825rem; color: #6b7280;">
-              <span>Input source: <code id="source-file-label">rescue_tasks (H2)</code></span>
+              <span>Telemetry Source: <code id="source-file-label">rescue_tasks (H2)</code></span>
             </div>
           </div>
         </div>
 
-        <!-- Visual Analytics Chart & Breakdown Section -->
+        <!-- Dual Chart Analytics Row -->
         <div class="grid grid-cols-2 gap-6 mb-6">
           
-          <!-- Bar Chart Card -->
+          <!-- Bar Chart: Cluster Workload & Task Counts -->
           <div class="card">
             <div class="card-header">
               <div>
-                <h2 class="card-title">Cluster Workload & Task Distribution</h2>
-                <div class="card-subtitle">Aggregated metrics visualised with Chart.js</div>
+                <h2 class="card-title">Cluster Workload Distribution</h2>
+                <div class="card-subtitle">Aggregated task weights and counts by cluster partition</div>
               </div>
             </div>
             <div class="card-body">
@@ -172,40 +230,150 @@
             </div>
           </div>
 
-          <!-- Per-Cluster and Per-Type Summary Tables -->
-          <div class="card" style="display: flex; flex-direction: column;">
+          <!-- Line Chart: Tasks-Over-Time Distribution -->
+          <div class="card">
             <div class="card-header">
               <div>
-                <h2 class="card-title">Marginal Distributions</h2>
-                <div class="card-subtitle">Rollup by Cluster partition and Task Category</div>
+                <h2 class="card-title">Task Pipeline Progression (Over Time)</h2>
+                <div class="card-subtitle">Cumulative tasks created and assigned across disaster timeline</div>
               </div>
             </div>
-            <div class="card-body" style="flex: 1; overflow-y: auto;">
-              
-              <!-- Cluster Table -->
-              <h4 style="font-size: 0.85rem; font-weight: 700; color: #4b5563; text-transform: uppercase; margin-bottom: 8px;">
-                Workload per Cluster
-              </h4>
-              <div class="table-container mb-4">
+            <div class="card-body">
+              <div class="chart-container-analytics">
+                <canvas id="timelineChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Task Pipeline Assignment Table with Filtering & Pagination -->
+        <div class="card mb-6">
+          <div class="card-header" style="flex-wrap: wrap; gap: 15px;">
+            <div>
+              <h2 class="card-title">Rescue Task Assignment Directory</h2>
+              <div class="card-subtitle">Live task registry with leader routing, node allocations, and filtering</div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="filter-panel">
+              <div class="filter-item">
+                <label for="filter-cluster" style="font-weight: 500;">Cluster:</label>
+                <select id="filter-cluster" class="form-select form-select-sm" style="width: 120px;">
+                  <option value="">All Clusters</option>
+                  <option value="Cluster-A">Cluster-A</option>
+                  <option value="Cluster-B">Cluster-B</option>
+                  <option value="Cluster-C">Cluster-C</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <label for="filter-type" style="font-weight: 500;">Type:</label>
+                <select id="filter-type" class="form-select form-select-sm" style="width: 120px;">
+                  <option value="">All Types</option>
+                  <option value="Medical">Medical</option>
+                  <option value="Food">Food</option>
+                  <option value="Search">Search</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <label for="filter-status" style="font-weight: 500;">Status:</label>
+                <select id="filter-status" class="form-select form-select-sm" style="width: 120px;">
+                  <option value="">All Statuses</option>
+                  <option value="ASSIGNED">ASSIGNED</option>
+                  <option value="PENDING">PENDING</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <input type="text" id="filter-search" class="form-input form-input-sm" placeholder="Search tasks..." style="width: 150px;">
+              </div>
+
+              <button id="btn-reset-filters" class="btn btn-sm btn-outline">Clear</button>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table breakdown-table">
+                <thead>
+                  <tr>
+                    <th>Task ID</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Workload</th>
+                    <th>Cluster</th>
+                    <th>Status</th>
+                    <th>Assigned Node</th>
+                    <th>Assigned By Leader</th>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody id="task-table-body">
+                  <tr><td colspan="9" class="text-center text-muted">Loading rescue task records...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar">
+              <div style="font-size: 0.85rem; color: #64748b;" id="pagination-info">
+                Showing 0-0 of 0 tasks
+              </div>
+              <div class="pagination-controls">
+                <label for="page-size-select" style="font-size: 0.85rem; color: #64748b;">Per page:</label>
+                <select id="page-size-select" class="form-select form-select-sm" style="width: 70px;">
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="20">20</option>
+                </select>
+                <button id="btn-prev-page" class="btn btn-sm btn-outline" disabled>&laquo; Prev</button>
+                <span id="page-num-display" style="font-size: 0.85rem; font-weight: 600; padding: 0 4px;">1</span>
+                <button id="btn-next-page" class="btn btn-sm btn-outline" disabled>Next &raquo;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Marginal Distributions & MapReduce Buckets -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          
+          <!-- Cluster Marginal Rollup -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Cluster Partition Marginals</h2>
+                <div class="card-subtitle">Aggregated workloads and tasks per network sector</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-container">
                 <table class="table breakdown-table">
                   <thead>
                     <tr>
                       <th>Cluster ID</th>
                       <th>Task Count</th>
                       <th>Total Workload</th>
-                      <th>Share</th>
+                      <th>Workload Share</th>
                     </tr>
                   </thead>
                   <tbody id="cluster-table-body">
-                    <tr><td colspan="4" class="text-center text-muted">No analytics data yet</td></tr>
+                    <tr><td colspan="4" class="text-center text-muted">Run MapReduce to view cluster marginals</td></tr>
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
 
-              <!-- Type Table -->
-              <h4 style="font-size: 0.85rem; font-weight: 700; color: #4b5563; text-transform: uppercase; margin-bottom: 8px;">
-                Tasks per Category
-              </h4>
+          <!-- Category Marginal Rollup -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Disaster Category Marginals</h2>
+                <div class="card-subtitle">Aggregated workloads and averages per relief type</div>
+              </div>
+            </div>
+            <div class="card-body">
               <div class="table-container">
                 <table class="table breakdown-table">
                   <thead>
@@ -217,21 +385,20 @@
                     </tr>
                   </thead>
                   <tbody id="type-table-body">
-                    <tr><td colspan="4" class="text-center text-muted">No analytics data yet</td></tr>
+                    <tr><td colspan="4" class="text-center text-muted">Run MapReduce to view category marginals</td></tr>
                   </tbody>
                 </table>
               </div>
-
             </div>
           </div>
         </div>
 
-        <!-- MapReduce Key-Value Breakdown Table -->
+        <!-- MapReduce Key-Value Buckets Table -->
         <div class="card mb-6">
           <div class="card-header">
             <div>
-              <h2 class="card-title">MapReduce Key-Value Buckets</h2>
-              <div class="card-subtitle">Composite Keys (Cluster|TaskType) reduced with associative summation</div>
+              <h2 class="card-title">MapReduce Key-Value Aggregation Buckets</h2>
+              <div class="card-subtitle">Composite Keys (<code>Cluster|TaskType</code>) grouped in shuffle and reduced via associative summation</div>
             </div>
           </div>
           <div class="card-body">
@@ -242,27 +409,27 @@
                     <th>Composite Key</th>
                     <th>Cluster</th>
                     <th>Task Type</th>
-                    <th>Map Count (&Sigma; 1)</th>
+                    <th>Mapped Count (&Sigma; 1)</th>
                     <th>Reduced Workload (&Sigma; Workload)</th>
                   </tr>
                 </thead>
                 <tbody id="breakdown-table-body">
-                  <tr><td colspan="5" class="text-center text-muted">Run MapReduce to view aggregated buckets</td></tr>
+                  <tr><td colspan="5" class="text-center text-muted">Run MapReduce to view composite buckets</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
         </div>
 
-        <!-- 2-Column Terminal Log & Live Events -->
+        <!-- Terminal Execution Step Trace & Live SSE Feed -->
         <div class="grid grid-cols-2 gap-6 mb-6">
           
-          <!-- Terminal Execution Step Trace -->
+          <!-- Terminal Execution Trace -->
           <div class="card">
             <div class="card-header">
               <div>
-                <h2 class="card-title">MapReduce Execution Trace</h2>
-                <div class="card-subtitle">Map emits, shuffle partitioning, and reduce aggregations</div>
+                <h2 class="card-title">Pipeline & MapReduce Trace</h2>
+                <div class="card-subtitle">Monospaced log of leader assignments and MapReduce stages</div>
               </div>
               <button id="btn-clear-trace" class="btn btn-sm btn-outline">Clear</button>
             </div>
@@ -271,12 +438,12 @@
             </div>
           </div>
 
-          <!-- Live SSE Event Stream -->
+          <!-- Live Compute SSE Event Feed -->
           <div class="card">
             <div class="card-header">
               <div>
                 <h2 class="card-title">Live Compute Events</h2>
-                <div class="card-subtitle">SSE real-time stream filtered for <code>compute</code> module</div>
+                <div class="card-subtitle">Real-time SSE events filtered for <code>compute</code> module</div>
               </div>
             </div>
             <div class="card-body" style="padding: 0;">
@@ -285,12 +452,12 @@
           </div>
         </div>
 
-        <!-- Execution History Table -->
+        <!-- Historical MapReduce Runs -->
         <div class="card mb-6">
           <div class="card-header">
             <div>
               <h2 class="card-title">Execution History (H2 Persisted)</h2>
-              <div class="card-subtitle">Stored AnalyticsRun entities with engine verification and timing</div>
+              <div class="card-subtitle">Stored <code>AnalyticsRun</code> records with engine verification and execution latencies</div>
             </div>
             <button id="btn-refresh-history" class="btn btn-sm btn-outline">🔄 Refresh</button>
           </div>
@@ -328,4 +495,3 @@
   <script src="/js/analytics.js"></script>
 </body>
 </html>
-
