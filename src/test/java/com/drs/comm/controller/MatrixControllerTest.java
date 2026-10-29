@@ -21,13 +21,36 @@ class MatrixControllerTest {
     private MockMvc mvc;
 
     @Test
-    @DisplayName("GET /api/matrix/status returns experiment 10 info")
+    @DisplayName("GET /api/matrix/status returns experiment 10 info and bestSpeedup")
     void testGetStatus() throws Exception {
         mvc.perform(get("/api/matrix/status"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.experiment").value(10))
                 .andExpect(jsonPath("$.defaultN").value(400))
-                .andExpect(jsonPath("$.maxN").value(800));
+                .andExpect(jsonPath("$.maxN").value(800))
+                .andExpect(jsonPath("$.bestSpeedup").isNumber());
+    }
+
+    @Test
+    @DisplayName("GET /api/matrix/latest returns result after benchmark run")
+    void testGetLatest() throws Exception {
+        String body = """
+                {
+                  "n": 30,
+                  "threads": 2
+                }
+                """;
+
+        mvc.perform(post("/api/matrix/run")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/matrix/latest"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.n").value(30))
+                .andExpect(jsonPath("$.threads").value(2))
+                .andExpect(jsonPath("$.correct").value(true));
     }
 
     @Test

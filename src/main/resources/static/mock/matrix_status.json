@@ -1,0 +1,10 @@
+{
+  "experiment": 10,
+  "name": "Parallel Matrix Multiplication (MPI Row Scatter/Gather)",
+  "defaultN": 400,
+  "maxN": 800,
+  "minN": 2,
+  "maxThreads": 32,
+  "bestSpeedup": 3.45,
+  "disasterContext": "Zone-Risk Assessment Tensor x Emergency Resource Demand Matrix"
+}

@@ -1,0 +1,15 @@
+{
+  "partitioned": true,
+  "clusters": ["Cluster-A", "Cluster-B"],
+  "nodeClusters": {
+    "UAV-01": "Cluster-A",
+    "UAV-02": "Cluster-A",
+    "Edge-01": "Cluster-B"
+  },
+  "coordinatorReachable": false,
+  "message": "Network partition active: Cluster-A and Cluster-B isolated. Coordinator unreachable.",
+  "steps": [
+    "Inter-cluster network severed by disaster debris",
+    "Edge and UAV nodes isolated from Coordinator"
+  ]
+}

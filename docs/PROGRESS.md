@@ -281,8 +281,49 @@ One section per person per day. Update yours in every PR.
 - Handover / Blocker Alert for Prasham:
   - Commit `c423d0a` merged into `main` contains duplicated/merge-conflict lines in `NodeEntity.java`, `SilentNodeMonitor.java`, `NodeRegistrationService.java`, and `NodeEntityRepository.java`. Please clean up the duplicate blocks to restore clean compilation across the whole repository.
 
-### Day 4
--
+### Day 4 — Live Dashboard Home, System-Wide UI Polish & 10 Experiments Architecture
+- Real-Time Mission Command Dashboard (`static/index.html` + `static/js/dashboard.js`):
+  - Transformed `index.html` from a static stub into a fully dynamic, reactive mission command center.
+  - Interactive Network Partition Status Banner (Exp 3):
+    - Driven by `/api/network/status` and live SSE events (`NETWORK_PARTITIONED`, `NETWORK_HEALED`).
+    - Connected state: emerald background with pulsating green status indicator, cluster link topology mapping, and inline "Simulate Partition (Exp 3)" button.
+    - Partitioned state: warning red background with pulsating alert indicator, isolated cluster breakdown, and inline "Heal Network Partition" button.
+  - 6 Real-Time Telemetry KPI Cards:
+    1. Cluster Nodes: live count of registered nodes, ALIVE badge, and SILENT failure alerts (`/api/nodes`).
+    2. Cluster Leaders: active elected leaders for Cluster-A and Cluster-B (`/api/election/leader`).
+    3. CRDT State Reconciliation: conflict detection and merged updates status (`/api/reconcile/latest`).
+    4. Task Load Balancing: assigned vs pending tasks and weighted capacity health (`/api/tasks`).
+    5. Fault Tolerance: Primary coordinator active status and backup standby/promotion state (`/api/ft/state`).
+    6. Parallel Matrix HPC: best speedup factor from multi-threaded row decomposition (`/api/matrix/status`).
+  - Vendored Chart.js Telemetry Visualizations:
+    1. Events by Architecture Layer (Doughnut Chart): real-time event counts distributed across `core`, `consensus`, `compute`, `comm`, and `ft` modules, updating dynamically on all SSE events.
+    2. Node Connectivity & Power (Bar Chart): live battery levels and signal strengths across active cluster nodes.
+  - Operational Hub:
+    - Active node directory table with battery progress bars and connectivity scores.
+    - Embedded live event feed widget powered by `events.createLiveLog`.
+    - Distributed operations quick action hub (Emergency Broadcast, Bully Election, CRDT Reconcile, Primary Failover, Matrix HPC Benchmark).
+- Global Toast Notification System (`static/js/layout.js`):
+  - Wired automated toast triggers across the entire application for critical distributed events:
+    - `NODE_SILENT`: alerts when an edge node stops sending heartbeats (Exp 2).
+    - `LEADER_ELECTED`: announces elected leader and algorithm per cluster (Exp 4).
+    - `RECONCILED`: confirms vector clock CRDT state union and conflict resolution (Exp 5).
+    - `FT_BACKUP_PROMOTED`: warns on primary coordinator crash and standby promotion (Exp 8).
+    - `NETWORK_PARTITIONED` & `NETWORK_HEALED`: alerts on inter-cluster isolation and restoration (Exp 3).
+- System-Wide UI Consistency & State Components (`static/css/app.css`):
+  - Implemented reusable design system tokens and state classes across all pages:
+    - Loading states: `.spinner`, `.spinner-sm`, `.spinner-lg`, `.loading-state`, and shimmer `.skeleton`.
+    - Empty states: `.empty-state`, `.empty-state-icon`, `.empty-state-title`, and `.empty-state-desc`.
+    - Error states: `.error-state`, `.error-state-icon`, `.error-state-title`, and `.error-state-desc`.
+    - Responsive grid expansions: `.grid-cols-5`, `.grid-cols-6`, and responsive breakpoints down to mobile viewports.
+- 'About / Experiments' Documentation Page (`static/pages/about.html` + `static/about.html`):
+  - Created comprehensive documentation page mapping all 10 Distributed Computing experiments:
+    - Experiment #, Feature Name, Theoretical DC Concept, Module/Package, Owner, Status, and Web Page link.
+    - Full disaster response storyline narrative connecting all 10 experiments into a cohesive mission flow.
+    - Technical stack specification and team ownership boundary matrix.
+    - Integrated into sidebar navigation in `layout.js`.
+- Scenario Runner Review (Exp Full Story):
+  - Tested `scenario.html` end-to-end with Prasham. Verified 7-phase execution sequence and event logging.
+  - UI Glitch notes: Phase 5 reconciliation table renders smoothly once `UpdateService` seeds concurrent updates; added error boundaries in dashboard telemetry loaders so missing mock endpoints do not break remaining KPI cards.
 
 ### Day 5
 -

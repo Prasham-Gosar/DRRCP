@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About & Experiments Architecture — DRS Web Edition</title>
+  
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/vendor/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="app-layout">
+    <!-- Sidebar dynamically injected by layout.js -->
+
+    <div id="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-container">
+        
+        <!-- Header Banner -->
+        <div class="card mb-6" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; border: none; box-shadow: var(--shadow-md);">
+          <div class="card-body" style="padding: 26px 32px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                  <span class="badge badge-blue">DISTRIBUTED COMPUTING</span>
+                  <span style="font-size: 0.8rem; color: #94a3b8;">Academic Project • 10 Experiments Unified Platform</span>
+                </div>
+                <h1 style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px;">
+                  Platform Architecture & 10 Experiments
+                </h1>
+                <p style="font-size: 0.92rem; color: #cbd5e1; max-width: 820px; line-height: 1.5;">
+                  "Disaster Relief & Rescue Coordination Platform - Web Edition". Complete documentation mapping all 10
+                  core Distributed Computing experiments from legacy console programs into a single full-stack reactive web platform.
+                </p>
+              </div>
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="/index.html" class="btn btn-primary" style="box-shadow: 0 4px 14px rgba(37,99,235,0.4);">
+                  📊 Live Dashboard
+                </a>
+                <a href="/pages/scenario.html" class="btn btn-outline" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.25);">
+                  🚀 Full Story Scenario
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mission Storyline & Narrative Flow -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Disaster Relief Operational Narrative</h2>
+              <div class="card-subtitle">How 10 distributed computing concepts solve real-time post-disaster challenges</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="display: flex; flex-direction: column; gap: 14px; font-size: 0.92rem; color: var(--text-main); line-height: 1.6;">
+              <p>
+                In an active earthquake and flood disaster zone, terrestrial communications and power grids are severed.
+                Autonomous edge nodes (ground stations, emergency relay towers) and UAV drones must coordinate emergency operations
+                under volatile network partitions, variable battery levels, and intermittent coordinator connectivity.
+              </p>
+              <div class="grid grid-cols-3 gap-4" style="margin: 8px 0;">
+                <div style="background: #f8fafc; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 14px 16px;">
+                  <strong style="color: #2563eb;">Phase 1: Discovery & Sync</strong>
+                  <div style="font-size: 0.82rem; color: #64748b; margin-top: 4px;">
+                    UAV and Edge nodes register with the Cluster Coordinator via Java RMI (<strong>Exp 1</strong>), send scheduled heartbeats on a 4-thread pool (<strong>Exp 2</strong>), and synchronize clocks using Cristian's algorithm with RTT compensation (<strong>Exp 3</strong>).
+                  </div>
+                </div>
+                <div style="background: #f8fafc; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 14px 16px;">
+                  <strong style="color: #d97706;">Phase 2: Partition & Consensus</strong>
+                  <div style="font-size: 0.82rem; color: #64748b; margin-top: 4px;">
+                    When physical debris creates network partitions (<strong>Exp 3</strong>), isolated clusters immediately hold Bully or Ring elections (<strong>Exp 4</strong>). Concurrent status updates are merged upon healing using Vector Clocks and CRDT Set Union (<strong>Exp 5</strong>).
+                  </div>
+                </div>
+                <div style="background: #f8fafc; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 14px 16px;">
+                  <strong style="color: #10b981;">Phase 3: Compute, Comms & HPC</strong>
+                  <div style="font-size: 0.82rem; color: #64748b; margin-top: 4px;">
+                    Rescue tasks are balanced by effective capacity (<strong>Exp 6</strong>), regional logs are aggregated with Apache Spark (<strong>Exp 7</strong>), coordinators replicate state for crash failover (<strong>Exp 8</strong>), alerts broadcast MPI-style (<strong>Exp 9</strong>), and risk matrices multiply in parallel (<strong>Exp 10</strong>).
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 10 Experiments Comprehensive Mapping Table -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Complete 10 Experiments Mapping Matrix</h2>
+              <div class="card-subtitle">Detailed breakdown of theory, package architecture, ownership, and web endpoints</div>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">Exp</th>
+                  <th>Feature Name</th>
+                  <th>Distributed Computing Concept</th>
+                  <th>Module / Package</th>
+                  <th>Owner</th>
+                  <th>Status</th>
+                  <th>Web Page</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Exp 1</strong></td>
+                  <td><strong>Node Registration</strong></td>
+                  <td>Remote Method Invocation (RMI), Registry naming on port 1099, dynamic discovery</td>
+                  <td><code>com.drs.core</code></td>
+                  <td>Prasham</td>
+                  <td><span class="badge badge-green">LIVE</span></td>
+                  <td><a href="/pages/nodes.html" class="btn btn-outline btn-sm">nodes.html</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 2</strong></td>
+                  <td><strong>Failure Detection</strong></td>
+                  <td>Scheduled 4-worker thread pool, timeout-based failure detectors, silent node alerts</td>
+                  <td><code>com.drs.core</code></td>
+                  <td>Prasham</td>
+                  <td><span class="badge badge-green">LIVE</span></td>
+                  <td><a href="/pages/nodes.html" class="btn btn-outline btn-sm">nodes.html</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 3</strong></td>
+                  <td><strong>Clock Synchronization</strong></td>
+                  <td>Cristian's algorithm with RTT compensation, artificial skew injection, vector clock stamps</td>
+                  <td><code>com.drs.core</code></td>
+                  <td>Prasham</td>
+                  <td><span class="badge badge-green">LIVE</span></td>
+                  <td><a href="/pages/clock.html" class="btn btn-outline btn-sm">clock.html</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 4</strong></td>
+                  <td><strong>Leader Election</strong></td>
+                  <td>Bully algorithm (priority-based) &amp; Ring algorithm (token-based), message complexity comparison</td>
+                  <td><code>com.drs.consensus</code></td>
+                  <td>Grasit</td>
+                  <td><span class="badge badge-green">LIVE</span></td>
+                  <td><a href="/pages/election.html" class="btn btn-outline btn-sm">election.html</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 5</strong></td>
+                  <td><strong>CRDT Reconciliation</strong></td>
+                  <td>Vector clocks for causality tracking, CRDT Set Union, concurrent conflict detection &amp; resolution</td>
+                  <td><code>com.drs.consensus</code></td>
+                  <td>Grasit</td>
+                  <td><span class="badge badge-green">LIVE</span></td>
+                  <td><a href="/pages/reconcile.html" class="btn btn-outline btn-sm">reconcile.html</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 6</strong></td>
+                  <td><strong>Load Balancing</strong></td>
+                  <td>Capacity-weighted greedy task allocation, multi-factor scoring (CPU, battery, signal)</td>
+                  <td><code>com.drs.compute</code></td>
+                  <td>Parth</td>
+                  <td><span class="badge badge-green">LIVE</span></td>
+                  <td><a href="/pages/loadbalancer.html" class="btn btn-outline btn-sm">loadbalancer.html</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 7</strong></td>
+                  <td><strong>Spark Analytics</strong></td>
+                  <td>Apache Spark batch analytics (ProcessBuilder subprocess) with Java-streams fallback pipeline</td>
+                  <td><code>analytics-spark</code></td>
+                  <td>Parth</td>
+                  <td><span class="badge badge-green">LIVE</span></td>
+                  <td><a href="/pages/analytics.html" class="btn btn-outline btn-sm">analytics.html</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 8</strong></td>
+                  <td><strong>Fault Tolerance</strong></td>
+                  <td>Primary-Backup state replication, synchronous update propagation, automatic standby promotion</td>
+                  <td><code>com.drs.faulttolerance</code></td>
+                  <td>Grasit</td>
+                  <td><span class="badge badge-green">LIVE</span></td>
+                  <td><a href="/pages/faulttolerance.html" class="btn btn-outline btn-sm">faulttolerance.html</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 9</strong></td>
+                  <td><strong>Collective Communication</strong></td>
+                  <td>MPI collective communication patterns: Broadcast, Scatter, and Gather across cluster ranks</td>
+                  <td><code>com.drs.comm</code></td>
+                  <td>Vedant</td>
+                  <td><span class="badge badge-green">LIVE</span></td>
+                  <td><a href="/pages/comm.html" class="btn btn-outline btn-sm">comm.html</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Exp 10</strong></td>
+                  <td><strong>Parallel Matrix HPC</strong></td>
+                  <td>High-performance parallel row decomposition, scatter/gather rows across threads, speedup benchmarks</td>
+                  <td><code>com.drs.comm</code></td>
+                  <td>Vedant</td>
+                  <td><span class="badge badge-green">LIVE</span></td>
+                  <td><a href="/pages/matrix.html" class="btn btn-outline btn-sm">matrix.html</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Team Ownership & Architectural Boundaries -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Team Ownership & Package Structure</h2>
+                <div class="card-subtitle">Strict modular separation of concerns across team members</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.88rem;">
+                <div style="border-left: 3px solid #3b82f6; padding-left: 12px;">
+                  <strong>Prasham (Core & Coordinator)</strong>
+                  <div style="color: #64748b; font-size: 0.8rem;">
+                    Packages: <code>com.drs.core</code><br>
+                    Responsibilities: Exp 1, 2, 3, RMI Registry (1099), heartbeat thread pool, Cristian clock sync, network partition controls, central EventPublisher, ScenarioRunner.
+                  </div>
+                </div>
+                <div style="border-left: 3px solid #f59e0b; padding-left: 12px;">
+                  <strong>Grasit (Consensus & Fault Tolerance)</strong>
+                  <div style="color: #64748b; font-size: 0.8rem;">
+                    Packages: <code>com.drs.consensus</code>, <code>com.drs.faulttolerance</code><br>
+                    Responsibilities: Exp 4 (Bully/Ring election), Exp 5 (Vector Clocks & CRDT state reconciliation), Exp 8 (Primary-Backup state replication and failover).
+                  </div>
+                </div>
+                <div style="border-left: 3px solid #10b981; padding-left: 12px;">
+                  <strong>Parth (Compute & Big Data Analytics)</strong>
+                  <div style="color: #64748b; font-size: 0.8rem;">
+                    Packages: <code>com.drs.compute</code>, <code>analytics-spark</code><br>
+                    Responsibilities: Exp 6 (Capacity load balancing), Exp 7 (Spark MapReduce analytics pipeline running via subprocess).
+                  </div>
+                </div>
+                <div style="border-left: 3px solid #8b5cf6; padding-left: 12px;">
+                  <strong>Vedant (Communication, HPC & Frontend Shell)</strong>
+                  <div style="color: #64748b; font-size: 0.8rem;">
+                    Packages: <code>com.drs.comm</code>, <code>static/</code><br>
+                    Responsibilities: Exp 9 (MPI collective comms), Exp 10 (Parallel matrix multiplication), design system (<code>app.css</code>), fetch client (<code>api.js</code>), SSE stream (<code>events.js</code>), shell layout (<code>layout.js</code>), mission dashboard (<code>index.html</code>, <code>dashboard.js</code>).
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Technology Stack -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Technology Stack & Technical Choices</h2>
+                <div class="card-subtitle">Standardized technologies across backend, frontend, and data layers</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                  <span style="font-weight: 600;">Backend Runtime</span>
+                  <span class="badge badge-blue">Java 17 • Spring Boot 3.3.x</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                  <span style="font-weight: 600;">Distributed RPC</span>
+                  <span class="badge badge-info">Java RMI (Port 1099 Registry)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                  <span style="font-weight: 600;">Real-Time Event Bus</span>
+                  <span class="badge badge-purple">Server-Sent Events (SSE) /api/events</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                  <span style="font-weight: 600;">Database & Persistence</span>
+                  <span class="badge badge-green">Spring Data JPA • H2 File DB</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                  <span style="font-weight: 600;">Big Data Engine</span>
+                  <span class="badge badge-amber">Apache Spark 3.x (Maven Subprocess)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                  <span style="font-weight: 600;">Frontend Web Shell</span>
+                  <span class="badge badge-gray">Semantic HTML5 • Vanilla CSS Design System</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                  <span style="font-weight: 600;">Data Visualization</span>
+                  <span class="badge badge-blue">Vendored Chart.js (Zero CDN Dependency)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/events.js"></script>
+  <script src="/js/layout.js"></script>
+</body>
+</html>

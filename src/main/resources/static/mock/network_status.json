@@ -1,0 +1,15 @@
+{
+  "partitioned": false,
+  "clusters": ["Cluster-A", "Cluster-B"],
+  "nodeClusters": {
+    "UAV-01": "Cluster-A",
+    "UAV-02": "Cluster-A",
+    "Edge-01": "Cluster-B"
+  },
+  "coordinatorReachable": true,
+  "message": "All clusters connected normally to Cluster Coordinator.",
+  "steps": [
+    "Inter-cluster network links active",
+    "Cluster Coordinator reachable on port 1099"
+  ]
+}

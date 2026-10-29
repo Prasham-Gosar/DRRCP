@@ -56,8 +56,19 @@ public class MatrixController {
                 "maxN", MatrixService.MAX_N,
                 "minN", MatrixService.MIN_N,
                 "maxThreads", MatrixService.MAX_THREADS,
+                "bestSpeedup", matrixService.getGlobalBestSpeedup(),
+                "latestResult", matrixService.getLatestResult() != null ? matrixService.getLatestResult() : Map.of(),
                 "disasterContext", "Zone-Risk Assessment Tensor x Emergency Resource Demand Matrix"
         ));
+    }
+
+    /**
+     * Returns the most recent matrix multiplication result, or 204 No Content if none run yet.
+     */
+    @GetMapping("/latest")
+    public ResponseEntity<MatrixResult> getLatest() {
+        MatrixResult latest = matrixService.getLatestResult();
+        return latest != null ? ResponseEntity.ok(latest) : ResponseEntity.noContent().build();
     }
 
     /**
