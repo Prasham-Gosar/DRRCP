@@ -19,6 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -135,5 +136,21 @@ class SparkJobServiceTest {
         assertEquals(5, latest.get().getTotalTasks());
         assertEquals(20.0, latest.get().getTotalWorkload());
     }
-}
 
+    @Test
+    @DisplayName("Rejects concurrent analytics execution when a run is already active")
+    void testConcurrentRunRejected() {
+        AtomicBoolean guard = (AtomicBoolean) ReflectionTestUtils.getField(sparkJobService, "analyticsRunning");
+        assertNotNull(guard);
+        guard.set(true);
+
+        try {
+            IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                    sparkJobService.runAnalytics("streams")
+            );
+            assertTrue(ex.getMessage().contains("already running"));
+        } finally {
+            guard.set(false);
+        }
+    }
+}

@@ -103,5 +103,40 @@ class MapReduceFallbackServiceTest {
         assertTrue(result.isFallbackUsed());
         assertEquals(45, result.getDurationMs());
     }
-}
 
+    @Test
+    @DisplayName("Single task produces exactly one composite bucket without unnecessary splits")
+    void testSingleTask() {
+        List<RescueTaskEntity> single = List.of(
+                new RescueTaskEntity("TASK-01", "Solo mission", 4.5, "Cluster-Alpha", "Recon", "PENDING", null)
+        );
+
+        AnalyticsResult result = fallbackService.computeAnalytics(single, "single-test", -1, false);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalTasks());
+        assertEquals(4.5, result.getTotalWorkload(), 0.001);
+        assertEquals(1, result.getBreakdown().size());
+        assertEquals("Cluster-Alpha", result.getBreakdown().get(0).getCluster());
+        assertEquals("Recon", result.getBreakdown().get(0).getTaskType());
+        assertEquals(1, result.getBreakdown().get(0).getTaskCount());
+        assertEquals(4.5, result.getBreakdown().get(0).getTotalWorkload(), 0.001);
+    }
+
+    @Test
+    @DisplayName("Zero and negative workload tasks are defensively clamped to zero")
+    void testZeroAndNegativeWorkloadDefensiveClamp() {
+        List<RescueTaskEntity> edgeTasks = List.of(
+                new RescueTaskEntity("T-ZERO", "Zero load task", 0.0, "Cluster-A", "Food", "PENDING", null),
+                new RescueTaskEntity("T-NEG", "Negative load corrupted task", -5.0, "Cluster-A", "Food", "PENDING", null)
+        );
+
+        AnalyticsResult result = fallbackService.computeAnalytics(edgeTasks, "edge-workload", -1, false);
+
+        assertNotNull(result);
+        assertEquals(2, result.getTotalTasks());
+        assertEquals(0.0, result.getTotalWorkload(), 0.001);
+        assertEquals(0.0, result.getWorkloadPerCluster().get("Cluster-A"), 0.001);
+        assertEquals(0.0, result.getWorkloadPerType().get("Food"), 0.001);
+    }
+}

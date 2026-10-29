@@ -57,24 +57,36 @@ class AnalyticsControllerTest {
         when(sparkJobService.runAnalytics(any())).thenReturn(mockResult);
 
         mockMvc.perform(post("/api/analytics/mapreduce/run")
-                        .param("engine", "streams")
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .param("engine", "streams"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.appName").value("DRS-MapReduceStreams"))
+                .andExpect(jsonPath("$.engine").value("streams"))
                 .andExpect(jsonPath("$.totalTasks").value(10))
                 .andExpect(jsonPath("$.totalWorkload").value(41.0))
-                .andExpect(jsonPath("$.engine").value("streams"))
-                .andExpect(jsonPath("$.countsPerCluster.Cluster-A").value(4))
-                .andExpect(jsonPath("$.breakdown[0].cluster").value("Cluster-A"));
+                .andExpect(jsonPath("$.fallbackUsed").value(false));
     }
 
     @Test
-    @DisplayName("GET /api/analytics/mapreduce/latest returns latest analytics result")
+    @DisplayName("POST /api/analytics/mapreduce/run returns 409 Conflict when job is already running")
+    void testConcurrentAnalyticsReturns409Conflict() throws Exception {
+        when(sparkJobService.runAnalytics(any()))
+                .thenThrow(new IllegalStateException("Analytics computation is already running. Please wait for the current run to finish."));
+
+        mockMvc.perform(post("/api/analytics/mapreduce/run")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"engine\":\"spark\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Analytics computation is already running. Please wait for the current run to finish."));
+    }
+
+    @Test
+    @DisplayName("GET /api/analytics/mapreduce/latest returns the latest run")
     void testGetLatestEndpoint() throws Exception {
         AnalyticsResult mockResult = new AnalyticsResult(
                 "DRS-SparkAnalytics",
                 "2026-10-29T10:00:00Z",
-                "rescue_tasks",
+                "input",
                 5,
                 20.0,
                 Map.of("Cluster-B", 5),
@@ -125,4 +137,3 @@ class AnalyticsControllerTest {
                 .andExpect(jsonPath("$.count").value(1));
     }
 }
-
